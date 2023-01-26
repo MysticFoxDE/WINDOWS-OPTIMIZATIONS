@@ -176,7 +176,7 @@ if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
       }
     catch
       {
-      Write-Host ("Der Registry Key konnte aufgrund eines Fehlers nicht aktualisiert werden. :-(") -ForegroundColor Red
+      Write-Host ("  The registry key could not be updated due to an error. :-(") -ForegroundColor Red
       if ($DEDAILEDDEBUG -eq "ON") 
           {Write-Host $_ -ForegroundColor Red}
       }
@@ -193,7 +193,7 @@ else
     }
   catch
     {
-    Write-Host ("  Der Registry Key konnte aufgrund eines Fehlers nicht erstellt werden. :-(") -ForegroundColor Red
+    Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
     if ($DEDAILEDDEBUG -eq "ON") 
       {Write-Host $_ -ForegroundColor Red}
     }
