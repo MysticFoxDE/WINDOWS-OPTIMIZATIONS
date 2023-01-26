@@ -3,14 +3,18 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.0
+    Version:        1.01
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  23.01.2023
+    Creation Date:  26.01.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
     https://community.spiceworks.com/topic/post/10299845
 #>
+
+# DETAILED SCRIPTDEBUGING ON=Enabled OFF=Disabled
+$DEDAILEDDEBUG = "OFF"
+
 
 #Get-NetTCPSetting
 #Get-NetTCPConnection
@@ -80,22 +84,69 @@ netsh int tcp set supplemental template=Datacenter congestionprovider=DCTCP
 netsh int tcp set supplemental template=Datacentercustom congestionprovider=DCTCP
 netsh int tcp set global ECN=Enabled
 
-# OPTIMIZE SEND- & RECEIVEBUFFERS
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"} 
+
+# OPTIMIZE RECEIVE-BUFFERS
+# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"}
+$RECEIVEBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
+Write-Host "Start Receive-Buffer Optimization" -ForegroundColor Cyan
 $NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"} 
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*ReceiveBuffers" -RegistryValue 2048
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $CHANGERBOK = "NO"
+  foreach ($RECEIVEBUFFESIZE in $RECEIVEBUFFERSIZES) 
+    {
+    if ($CHANGERBOK -eq "NO")
+      {
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*ReceiveBuffers" -RegistryValue $RECEIVEBUFFESIZE -ErrorAction Stop
+        $CHANGERBOK = "YES"
+        Write-Host ("Nice, the receive buffer size of NIC " + $NICNAME + " was successfully configured to " + $RECEIVEBUFFESIZE + "KB. :-)") -ForegroundColor Green
+        }
+      catch
+        {
+        Write-Host ("Oops, the NIC " + $NICNAME + " does not accept a receive buffer size of " + $RECEIVEBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
+        $CHANGERBOK = "NO"
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
   }
+Write-Host "Receive-Buffer Optimization is complitly finished." -ForegroundColor Cyan
 
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"} 
+ 
+# OPTIMIZE TRANSMIT-BUFFERS
+# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"}
+$TRANSMITBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
+Write-Host "Start Transmit-Buffer Optimization" -ForegroundColor Cyan
 $NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"} 
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*TransmitBuffers" -RegistryValue 2048
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $CHANGETBOK = "NO"
+  foreach ($TRANSMITBUFFESIZE in $TRANSMITBUFFERSIZES) 
+    {
+    if ($CHANGETBOK -eq "NO")
+      {
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*TransmitBuffers" -RegistryValue $TRANSMITBUFFESIZE -ErrorAction Stop
+        $CHANGETBOK = "YES"
+        Write-Host ("Nice, the transmit buffer size of NIC " + $NICNAME + " was successfully configured to " + $TRANSMITBUFFESIZE + "KB. :-)") -ForegroundColor Green
+        }
+      catch
+        {
+        Write-Host ("Oops, the NIC " + $NICNAME + " does not accept a transmit buffer size of " + $TRANSMITBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
+        $CHANGETBOK = "NO"
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
   }
+Write-Host "Transmit-Buffer Optimization is complitly finished." -ForegroundColor Cyan
 
 # ENABLE DATACENTERCUSTOM TCP PROFILE
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -PropertyType Binary -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
