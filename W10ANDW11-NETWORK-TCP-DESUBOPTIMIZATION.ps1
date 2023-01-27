@@ -3,7 +3,7 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.03
+    Version:        1.04
     Author:         MysticFoxDE (Alexander Fuchs)
     Creation Date:  27.01.2023
 
@@ -76,10 +76,64 @@ foreach ($adapter in $NICs)
   }
 
 # OPTIMIZE TCP CONGESTION CONTROL
-netsh int tcp set supplemental template=Datacenter congestionprovider=DCTCP
-netsh int tcp set supplemental template=Datacentercustom congestionprovider=DCTCP
-netsh int tcp set global ECN=Enabled
+$CHANGETCPCCOK = $true
+Write-Host "Start TCP congestion controll optimization" -ForegroundColor Cyan
+Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP" -ForegroundColor Gray
+try
+  {
+  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set supplemental template=Datacenter congestionprovider=DCTCP" -ErrorAction Stop | Out-String -Stream
+  if ($COMMANDOUTPUT -eq "OK.")
+    {
+    Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP was successfully. :-)" -ForegroundColor Green
+    }
+  else
+    {
+    $CHANGETCPCCOK = $false
+    Write-Host "  The Update of the congestionprovider of the Datacenter TCP profile to DCTCP was NOT successfully. :-(" -ForegroundColor Red
+    Write-Host ("  " + $COMMANDOUTPUT) -ForegroundColor Red 
+    }
+  }
+catch
+  {
+  $CHANGETCPCCOK = $false
+  Write-Host ("  The Update of the congestionprovider of the Datacenter TCP profile to DCTCP was NOT successfully. :-(") -ForegroundColor Red
+  if ($DEDAILEDDEBUG -eq "ON") 
+    {Write-Host $_ -ForegroundColor Red}
+  }
 
+Write-Host "  Try to enable ECN" -ForegroundColor Gray
+try
+  {
+  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set global ECN=Enabled" -ErrorAction Stop | Out-String -Stream
+  if ($COMMANDOUTPUT -eq "OK.")
+    {
+    Write-Host "  Enable ECN was successfully. :-)" -ForegroundColor Green
+    }
+  else
+    {
+    $CHANGETCPCCOK = $false
+    Write-Host "  Try to enable ECN was NOT successfully. :-(" -ForegroundColor Red
+    Write-Host ("  " + $COMMANDOUTPUT) -ForegroundColor Red 
+    }
+  }
+catch
+  {
+  $CHANGETCPCCOK = $false
+  Write-Host ("  Try to enable ECN was NOT successfully was NOT successfully. :-(") -ForegroundColor Red
+  if ($DEDAILEDDEBUG -eq "ON") 
+    {Write-Host $_ -ForegroundColor Red}
+  }
+
+
+if ($CHANGETCPCCOK -eq $true)
+    {
+    Write-Host "TCP congestion controll optimization is finished successfully. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "TCP congestion controll can't finished successfully. :-(" -ForegroundColor Red
+    }
 
 # OPTIMIZE RECEIVE-BUFFERS
 # Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"}
@@ -113,7 +167,6 @@ foreach ($adapter in $NICs)
   }
 Write-Host "Receive-Buffer optimization is complitly finished." -ForegroundColor Cyan
 
- 
 # OPTIMIZE TRANSMIT-BUFFERS
 # Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"}
 $TRANSMITBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
@@ -269,7 +322,7 @@ foreach ($adapter in $NICs)
   }
 if ($CHANGETCPPROFILEOK -eq $true)
     {
-    Write-Host "ACK-Frequency optimization optimization is finished successfully. :-)" -ForegroundColor Cyan
+    Write-Host "ACK-Frequency optimization is finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
@@ -338,7 +391,7 @@ foreach ($adapter in $NICs)
   }
 if ($CHANGETCPDELAYOK -eq $true)
     {
-    Write-Host "TCP-Delay optimization optimization is finished successfully. :-)" -ForegroundColor Cyan
+    Write-Host "TCP-Delay optimization is finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
