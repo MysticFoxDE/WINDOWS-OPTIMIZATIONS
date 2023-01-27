@@ -3,7 +3,7 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.02
+    Version:        1.03
     Author:         MysticFoxDE (Alexander Fuchs)
     Creation Date:  27.01.2023
 
@@ -24,10 +24,10 @@ Set-NetOffloadGlobalSetting -ReceiveSideScaling Disabled
 $NICs = Get-NetAdapter -Physical | Select-Object Name
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    $NICRSSSTATUS = Get-NetAdapterRss -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object Enabled | Select Enabled -ExpandProperty Enabled | Out-String -Stream 
-    if ($NICRSSSTATUS -eq "True")
-      {Disable-NetAdapterRss -Name "$NICNAME"}
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $NICRSSSTATUS = Get-NetAdapterRss -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object Enabled | Select Enabled -ExpandProperty Enabled | Out-String -Stream 
+  if ($NICRSSSTATUS -eq "True")
+    {Disable-NetAdapterRss -Name "$NICNAME"}
   }
 
 # DISABLE RSC
@@ -36,13 +36,13 @@ Set-NetOffloadGlobalSetting -ReceiveSegmentCoalescing Disabled
 $NICs = Get-NetAdapter -Physical | Select-Object Name
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    $NICRSCIPV4STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv4Enabled | Select IPv4Enabled -ExpandProperty IPv4Enabled | Out-String -Stream
-    $NICRSCIPV6STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv6Enabled | Select IPv6Enabled -ExpandProperty IPv6Enabled | Out-String -Stream 
-    if ($NICRSCIPV4STATUS -eq "True")
-      {Disable-NetAdapterRsc -Name "$NICNAME" -IPv4}
-    if ($NICRSCIPV6STATUS -eq "True")
-      {Disable-NetAdapterRsc -Name "$NICNAME" -IPv6}
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $NICRSCIPV4STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv4Enabled | Select IPv4Enabled -ExpandProperty IPv4Enabled | Out-String -Stream
+  $NICRSCIPV6STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv6Enabled | Select IPv6Enabled -ExpandProperty IPv6Enabled | Out-String -Stream 
+  if ($NICRSCIPV4STATUS -eq "True")
+    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv4}
+  if ($NICRSCIPV6STATUS -eq "True")
+    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv6}
   }
 
 # DISABLE PACKET COALESCING
@@ -53,8 +53,8 @@ Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled
 $NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0
   }
 
 # DISABLE INTERRUPT MODERATION
@@ -62,8 +62,8 @@ foreach ($adapter in $NICs)
 $NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0
   }
 
 # DISABLE ENERGY-EFFICIENT-ETHERNET
@@ -71,8 +71,8 @@ foreach ($adapter in $NICs)
 $NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
 foreach ($adapter in $NICs) 
   {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0
   }
 
 # OPTIMIZE TCP CONGESTION CONTROL
@@ -184,7 +184,7 @@ if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
   }
 else
   {
-  Write-Host "  The corresponding registry entry does not exist and is now being recreated." -ForegroundColor Yellow
+  Write-Host "  The corresponding registry entry does not exist and is now being created." -ForegroundColor Yellow
   try
     {
     New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -PropertyType Binary -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
@@ -204,24 +204,144 @@ if ($CHANGETCPPROFILEOK -eq $true)
   }
 else
   {
-  Write-Host "TCP profile optimization can't finished successfully. :-(" -ForegroundColor Red
   $FULLYCOMPLETED = $false
+  Write-Host "TCP profile optimization can't finished successfully. :-(" -ForegroundColor Red
   }
 
-# OPTIMIZE TCPACKFREQUENCY
-$NICs = Get-NetAdapter -Physical | Select-Object DeviceID
+# OPTIMIZE TCPACKFREQUENCY 
+Write-Host "Start ACK-Frequency optimization" -ForegroundColor Cyan
+$NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
+$CHANGETCPACKFREQUENCYOK = $true
 foreach ($adapter in $NICs) 
   {
-    $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-    $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
-    New-ItemProperty -Path "$REGKEYPATH" -Name 'TcpAckFrequency' -Value '1' -PropertyType DWORD
-  }
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
 
-# DISABLE TCPDELAY
-$NICs = Get-NetAdapter -Physical | Select-Object DeviceID
+  Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
+  $TARGETVALUE = 1
+  $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
+  else
+    {$AREEQUAL = $false}
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {
+    Write-Host ("    The key for NIC " + $NICNAME + " is present in the registry.") -ForegroundColor Yellow
+    Write-Host ("    Checking the already existing key of NIC " + $NICNAME + ".") -ForegroundColor Gray
+    if ($AREEQUAL -eq $true)
+      {
+      Write-Host ("  The settings of NIC " + $NICNAME + " are already set correctly, no further measures are required.") -ForegroundColor Green
+      }
+    else
+      {
+      Write-Host "    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
+      try
+        {
+        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -Value 1
+        Write-Host "  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated." -ForegroundColor Green
+        }
+      catch
+        {
+        $CHANGETCPPROFILEOK = $false
+        Write-Host ("  The registry key for NIC " + $NICNAME + " could not be updated due to an error. :-(") -ForegroundColor Red
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  else
+    {
+    Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
+    try
+      {
+      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -PropertyType DWord  -Value "1"
+      Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $CHANGETCPPROFILEOK = $false
+      Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+if ($CHANGETCPPROFILEOK -eq $true)
+    {
+    Write-Host "ACK-Frequency optimization optimization is finished successfully. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "ACK-Frequency optimization can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# OPTIMIZE TCPDELAY 
+Write-Host "Start TCP-Delay optimization" -ForegroundColor Cyan
+$NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
+$CHANGETCPDELAYOK = $true
 foreach ($adapter in $NICs) 
   {
-    $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-    $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
-    New-ItemProperty -Path "$REGKEYPATH" -Name 'TcpNoDelay' -Value '1' -PropertyType DWORD
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
+
+  Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
+  $TARGETVALUE = 1
+  $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
+  else
+    {$AREEQUAL = $false}
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {
+    Write-Host ("    The key for NIC " + $NICNAME + " is present in the registry.") -ForegroundColor Yellow
+    Write-Host ("    Checking the already existing key of NIC " + $NICNAME + ".") -ForegroundColor Gray
+    if ($AREEQUAL -eq $true)
+      {
+      Write-Host ("  The settings of NIC " + $NICNAME + " are already set correctly, no further measures are required.") -ForegroundColor Green
+      }
+    else
+      {
+      Write-Host "    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
+      try
+        {
+        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -Value 1
+        Write-Host "  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated." -ForegroundColor Green
+        }
+      catch
+        {
+        $CHANGETCPDELAYOK = $false
+        Write-Host ("  The registry key for NIC " + $NICNAME + " could not be updated due to an error. :-(") -ForegroundColor Red
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  else
+    {
+    Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
+    try
+      {
+      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -PropertyType DWord  -Value "1"
+      Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $CHANGETCPDELAYOK = $false
+      Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
   }
+if ($CHANGETCPDELAYOK -eq $true)
+    {
+    Write-Host "TCP-Delay optimization optimization is finished successfully. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "TCP-Delay optimization can't finished successfully. :-(" -ForegroundColor Red
+    }
