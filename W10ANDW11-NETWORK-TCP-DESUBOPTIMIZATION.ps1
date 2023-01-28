@@ -3,7 +3,7 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.05
+    Version:        1.06
     Author:         MysticFoxDE (Alexander Fuchs)
     Creation Date:  28.01.2023
 
@@ -18,163 +18,109 @@ $DEDAILEDDEBUG = "OFF"
 #BASIC VARIABLES
 $FULLYCOMPLETED = $true
 
-# DISABLE RSS
-#Get-NetAdapterRss
-Set-NetOffloadGlobalSetting -ReceiveSideScaling Disabled
-$NICs = Get-NetAdapter -Physical | Select-Object Name
-foreach ($adapter in $NICs) 
+# DISABLE PACKET COALESCING FILTER ON WINDOWS TCP-STACK
+$DISABLEPCFOK = $true
+Write-Host "Start disabling PACKET COALESCING FILTER on Windows TCP-Stack" -ForegroundColor Cyan
+Write-Host "  Check current state of PACKET COALESCING FILTER" -ForegroundColor Gray
+$STATUSPCF = Get-NetOffloadGlobalSetting | Select-Object PacketCoalescingFilter | Select PacketCoalescingFilter -ExpandProperty PacketCoalescingFilter | Out-String -Stream
+if ($STATUSPCF -eq "Disabled")
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $NICRSSSTATUS = Get-NetAdapterRss -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object Enabled | Select Enabled -ExpandProperty Enabled | Out-String -Stream 
-  if ($NICRSSSTATUS -eq "True")
-    {Disable-NetAdapterRss -Name "$NICNAME"}
+  Write-Host "  The PACKET COALESCING FILTER is allready disabled, so nothing to do. :-)" -ForegroundColor Green
   }
-
-# DISABLE RSC
-#Get-NetAdapterRsc
-Set-NetOffloadGlobalSetting -ReceiveSegmentCoalescing Disabled
-$NICs = Get-NetAdapter -Physical | Select-Object Name
-foreach ($adapter in $NICs) 
+else
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $NICRSCIPV4STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv4Enabled | Select IPv4Enabled -ExpandProperty IPv4Enabled | Out-String -Stream
-  $NICRSCIPV6STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv6Enabled | Select IPv6Enabled -ExpandProperty IPv6Enabled | Out-String -Stream 
-  if ($NICRSCIPV4STATUS -eq "True")
-    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv4}
-  if ($NICRSCIPV6STATUS -eq "True")
-    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv6}
-  }
-
-# DISABLE PACKET COALESCING
-Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled
-
-# DISABLE FLOW CONTROL
-Write-Host "Start diabling FLOW CONTROL on all NIC's" -ForegroundColor Cyan
-Write-Host "  Identify the NICs that actually support FLOW CONTROL." -ForegroundColor Gray
-$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
-$DISABLEFCOK = $true
-foreach ($adapter in $NICs) 
-  {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
-  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
-
-  Write-Host ("    Check FLOW CONTROL Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
-  
-  if ($EEEVALUE -eq "0")
+  Write-Host "  The PACKET COALESCING FILTER is enabled, try next to disable it." -ForegroundColor Yellow
+  try
     {
-    Write-Host ("    The FLOW CONTROL is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled -ErrorAction Stop
+    Write-Host "    The PACKET COALESCING FILTER is successfully set to disabled. :-)" -ForegroundColor Green
     }
-  else
+  catch
     {
-    Write-Host "    The FLOW CONTROL is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
-    try
-      {
-      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0 -ErrorAction Stop
-      Write-Host "    The FLOW CONTROL on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
-      }
-    catch
-      {
-      $DISABLEFCOK = $false
-      Write-Host ("  The FLOW CONTROL on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
-      if ($DEDAILEDDEBUG -eq "ON") 
-        {Write-Host $_ -ForegroundColor Red}
-      }
+    $DISABLEPCFOK = $false
+    Write-Host ("  The PACKET COALESCING FILTER could not set to disabled. :-(") -ForegroundColor Red
+    if ($DEDAILEDDEBUG -eq "ON") 
+      {Write-Host $_ -ForegroundColor Red}
     }
   }
-if ($DISABLEFCOK -eq $true)
+if ($DISABLEPCFOK -eq $true)
     {
-    Write-Host "FLOW CONTROL has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    Write-Host "Disabling PACKET COALESCING FILTER has been finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
     $FULLYCOMPLETED = $false
-    Write-Host "Disabling FLOW CONTROL can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host "Disabling PACKET COALESCING FILTER can't finished successfully. :-(" -ForegroundColor Red
     }
 
-# DISABLE INTERRUPT MODERATION
-Write-Host "Start diabling INTERRUPT MODERATION on all NIC's" -ForegroundColor Cyan
-Write-Host "  Identify the NICs that actually support INTERRUPT MODERATION." -ForegroundColor Gray
-$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
-$DISABLEIMOK = $true
-foreach ($adapter in $NICs) 
+# DISABLE RECEIVE SIDE SCALING ON WINDOWS TCP-STACK
+$DISABLERSSOK = $true
+Write-Host "Start disabling RECEIVE SIDE SCALING on Windows TCP-Stack" -ForegroundColor Cyan
+Write-Host "  Check current state of RECEIVE SIDE SCALING" -ForegroundColor Gray
+$STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSideScaling | Select ReceiveSideScaling -ExpandProperty ReceiveSideScaling | Out-String -Stream
+if ($STATUSPCF -eq "Disabled")
   {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
-  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
-
-  Write-Host ("    Check INTERRUPT MODERATION Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
-  
-  if ($EEEVALUE -eq "0")
+  Write-Host "  The RECEIVE SIDE SCALING is allready disabled, so nothing to do. :-)" -ForegroundColor Green
+  }
+else
+  {
+  Write-Host "  The RECEIVE SIDE SCALING is enabled, try next to disable it." -ForegroundColor Yellow
+  try
     {
-    Write-Host ("    The INTERRUPT MODERATION is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    Set-NetOffloadGlobalSetting -ReceiveSideScaling Disabled -ErrorAction Stop
+    Write-Host "    The RECEIVE SIDE SCALING is successfully set to disabled. :-)" -ForegroundColor Green
     }
-  else
+  catch
     {
-    Write-Host "    The INTERRUPT MODERATION is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
-    try
-      {
-      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0 -ErrorAction Stop
-      Write-Host "    The INTERRUPT MODERATION on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
-      }
-    catch
-      {
-      $DISABLEIMOK = $false
-      Write-Host ("  The INTERRUPT MODERATION on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
-      if ($DEDAILEDDEBUG -eq "ON") 
-        {Write-Host $_ -ForegroundColor Red}
-      }
+    $DISABLERSSOK = $false
+    Write-Host ("  The RECEIVE SIDE SCALING could not set to disabled. :-(") -ForegroundColor Red
+    if ($DEDAILEDDEBUG -eq "ON") 
+      {Write-Host $_ -ForegroundColor Red}
     }
   }
-if ($DISABLEIMOK -eq $true)
+if ($DISABLERSSOK -eq $true)
     {
-    Write-Host "INTERRUPT MODERATION has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    Write-Host "Disabling RECEIVE SIDE SCALING has been finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
     $FULLYCOMPLETED = $false
-    Write-Host "Disabling INTERRUPT MODERATION can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host "Disabling RECEIVE SIDE SCALING can't finished successfully. :-(" -ForegroundColor Red
     }
 
-# DISABLE ENERGY-EFFICIENT-ETHERNET 
-Write-Host "Start diabling ENERGY-EFFICIENT-ETHERNET on all NIC's" -ForegroundColor Cyan
-Write-Host "  Identify the NICs that actually support ENERGY-EFFICIENT-ETHERNET." -ForegroundColor Gray
-$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
-$DISABLEEEEEOK = $true
-foreach ($adapter in $NICs) 
+# DISABLE RECEIVE SEGMENT COALESCING ON WINDOWS TCP-STACK
+$DISABLERSSOK = $true
+Write-Host "Start disabling RECEIVE SEGMENT COALESCING on Windows TCP-Stack" -ForegroundColor Cyan
+Write-Host "  Check current state of RECEIVE SEGMENT COALESCING" -ForegroundColor Gray
+$STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSegmentCoalescing | Select ReceiveSegmentCoalescing -ExpandProperty ReceiveSegmentCoalescing | Out-String -Stream
+if ($STATUSPCF -eq "Disabled")
   {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
-  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
-
-  Write-Host ("    Check EEE Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
-  
-  if ($EEEVALUE -eq "0")
+  Write-Host "  The RECEIVE SEGMENT COALESCING is allready disabled, so nothing to do. :-)" -ForegroundColor Green
+  }
+else
+  {
+  Write-Host "  The RECEIVE SEGMENT COALESCING is enabled, try next to disable it." -ForegroundColor Yellow
+  try
     {
-    Write-Host ("    The EEE is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    Set-NetOffloadGlobalSetting -ReceiveSegmentCoalescing Disabled -ErrorAction Stop
+    Write-Host "    The RECEIVE SEGMENT COALESCING is successfully set to disabled. :-)" -ForegroundColor Green
     }
-  else
+  catch
     {
-    Write-Host "    The EEE is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
-    try
-      {
-      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0 -ErrorAction Stop
-      Write-Host "    The EEE on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
-      }
-    catch
-      {
-      $DISABLEEEEEOK = $false
-      Write-Host ("  The EEE on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
-      if ($DEDAILEDDEBUG -eq "ON") 
-        {Write-Host $_ -ForegroundColor Red}
-      }
+    $DISABLERSSOK = $false
+    Write-Host ("  The RECEIVE SEGMENT COALESCING could not set to disabled. :-(") -ForegroundColor Red
+    if ($DEDAILEDDEBUG -eq "ON") 
+      {Write-Host $_ -ForegroundColor Red}
     }
   }
-if ($DISABLEEEEEOK -eq $true)
+if ($DISABLERSSOK -eq $true)
     {
-    Write-Host "ENERGY-EFFICIENT-ETHERNET has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    Write-Host "Disabling RECEIVE SEGMENT COALESCING has been finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
     $FULLYCOMPLETED = $false
-    Write-Host "Disabling ENERGY-EFFICIENT-ETHERNET can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host "Disabling RECEIVE SEGMENT COALESCING can't finished successfully. :-(" -ForegroundColor Red
     }
 
 # OPTIMIZE TCP CONGESTION CONTROL
@@ -236,70 +182,6 @@ if ($CHANGETCPCCOK -eq $true)
     $FULLYCOMPLETED = $false
     Write-Host "TCP congestion controll can't finished successfully. :-(" -ForegroundColor Red
     }
-
-# OPTIMIZE RECEIVE-BUFFERS
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"}
-$RECEIVEBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
-Write-Host "Start Receive-Buffer optimization" -ForegroundColor Cyan
-$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"} 
-foreach ($adapter in $NICs) 
-  {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $CHANGERBOK = "NO"
-  foreach ($RECEIVEBUFFESIZE in $RECEIVEBUFFERSIZES) 
-    {
-    if ($CHANGERBOK -eq "NO")
-      {
-      Write-Host ("  Try to set receive buffer size of NIC " + $NICNAME + " to " + $RECEIVEBUFFESIZE + "KB.") -ForegroundColor Gray
-      try
-        {
-        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*ReceiveBuffers" -RegistryValue $RECEIVEBUFFESIZE -ErrorAction Stop
-        $CHANGERBOK = "YES"
-        Write-Host ("  The receive buffer size of NIC " + $NICNAME + " was successfully configured to " + $RECEIVEBUFFESIZE + "KB. :-)") -ForegroundColor Green
-        }
-      catch
-        {
-        Write-Host ("  Oops, the NIC " + $NICNAME + " does not accept a receive buffer size of " + $RECEIVEBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
-        $CHANGERBOK = "NO"
-        if ($DEDAILEDDEBUG -eq "ON") 
-          {Write-Host $_ -ForegroundColor Red}
-        }
-      }
-    }
-  }
-Write-Host "Receive-Buffer optimization is complitly finished." -ForegroundColor Cyan
-
-# OPTIMIZE TRANSMIT-BUFFERS
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"}
-$TRANSMITBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
-Write-Host "Start Transmit-Buffer optimization" -ForegroundColor Cyan
-$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"} 
-foreach ($adapter in $NICs) 
-  {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $CHANGETBOK = "NO"
-  foreach ($TRANSMITBUFFESIZE in $TRANSMITBUFFERSIZES) 
-    {
-    if ($CHANGETBOK -eq "NO")
-      {
-      Write-Host ("  Try to set transmit buffer size of NIC " + $NICNAME + " to " + $TRANSMITBUFFESIZE + "KB.") -ForegroundColor Gray
-      try
-        {
-        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*TransmitBuffers" -RegistryValue $TRANSMITBUFFESIZE -ErrorAction Stop
-        $CHANGETBOK = "YES"
-        Write-Host ("  The transmit buffer size of NIC " + $NICNAME + " was successfully configured to " + $TRANSMITBUFFESIZE + "KB. :-)") -ForegroundColor Green
-        }
-      catch
-        {
-        Write-Host ("  Oops, the NIC " + $NICNAME + " does not accept a transmit buffer size of " + $TRANSMITBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
-        $CHANGETBOK = "NO"
-        if ($DEDAILEDDEBUG -eq "ON") 
-          {Write-Host $_ -ForegroundColor Red}
-        }
-      }
-    }
-  }
-Write-Host "Transmit-Buffer optimization is complitly finished." -ForegroundColor Cyan
 
 # CHANGE TCP PROFILE TO DATACENTERCUSTOM 
 Write-Host "Start TCP profile optimization" -ForegroundColor Cyan
@@ -363,6 +245,225 @@ else
   Write-Host "TCP profile optimization can't finished successfully. :-(" -ForegroundColor Red
   }
 
+# DISABLE RSS ON ALL NIC's
+#Get-NetAdapterRss
+$NICs = Get-NetAdapter -Physical | Select-Object Name
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $NICRSSSTATUS = Get-NetAdapterRss -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object Enabled | Select Enabled -ExpandProperty Enabled | Out-String -Stream 
+  if ($NICRSSSTATUS -eq "True")
+    {Disable-NetAdapterRss -Name "$NICNAME"}
+  }
+
+# DISABLE RSC ON ALL NIC's
+#Get-NetAdapterRsc
+Set-NetOffloadGlobalSetting -ReceiveSegmentCoalescing Disabled
+$NICs = Get-NetAdapter -Physical | Select-Object Name
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $NICRSCIPV4STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv4Enabled | Select IPv4Enabled -ExpandProperty IPv4Enabled | Out-String -Stream
+  $NICRSCIPV6STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv6Enabled | Select IPv6Enabled -ExpandProperty IPv6Enabled | Out-String -Stream 
+  if ($NICRSCIPV4STATUS -eq "True")
+    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv4}
+  if ($NICRSCIPV6STATUS -eq "True")
+    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv6}
+  }
+
+# DISABLE FLOW CONTROL ON ALL NIC's
+Write-Host "Start disabling FLOW CONTROL on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support FLOW CONTROL." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
+$DISABLEFCOK = $true
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+
+  Write-Host ("    Check FLOW CONTROL Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The FLOW CONTROL is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The FLOW CONTROL is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The FLOW CONTROL on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEFCOK = $false
+      Write-Host ("  The FLOW CONTROL on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+if ($DISABLEFCOK -eq $true)
+    {
+    Write-Host "FLOW CONTROL has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling FLOW CONTROL can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# DISABLE INTERRUPT MODERATION ON ALL NIC's
+Write-Host "Start disabling INTERRUPT MODERATION on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support INTERRUPT MODERATION." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
+$DISABLEIMOK = $true
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+
+  Write-Host ("    Check INTERRUPT MODERATION Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The INTERRUPT MODERATION is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The INTERRUPT MODERATION is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The INTERRUPT MODERATION on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEIMOK = $false
+      Write-Host ("  The INTERRUPT MODERATION on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+if ($DISABLEIMOK -eq $true)
+    {
+    Write-Host "INTERRUPT MODERATION has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling INTERRUPT MODERATION can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# DISABLE ENERGY-EFFICIENT-ETHERNET ON ALL NIC's
+Write-Host "Start disabling ENERGY-EFFICIENT-ETHERNET on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support ENERGY-EFFICIENT-ETHERNET." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
+$DISABLEEEEEOK = $true
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+
+  Write-Host ("    Check EEE Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The EEE is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The EEE is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The EEE on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEEEEEOK = $false
+      Write-Host ("  The EEE on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+if ($DISABLEEEEEOK -eq $true)
+    {
+    Write-Host "ENERGY-EFFICIENT-ETHERNET has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling ENERGY-EFFICIENT-ETHERNET can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# OPTIMIZE RECEIVE-BUFFERS ON ALL NIC's
+# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"}
+$RECEIVEBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
+Write-Host "Start Receive-Buffer optimization" -ForegroundColor Cyan
+$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*ReceiveBuffers"} 
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $CHANGERBOK = "NO"
+  foreach ($RECEIVEBUFFESIZE in $RECEIVEBUFFERSIZES) 
+    {
+    if ($CHANGERBOK -eq "NO")
+      {
+      Write-Host ("  Try to set receive buffer size of NIC " + $NICNAME + " to " + $RECEIVEBUFFESIZE + "KB.") -ForegroundColor Gray
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*ReceiveBuffers" -RegistryValue $RECEIVEBUFFESIZE -ErrorAction Stop
+        $CHANGERBOK = "YES"
+        Write-Host ("  The receive buffer size of NIC " + $NICNAME + " was successfully configured to " + $RECEIVEBUFFESIZE + "KB. :-)") -ForegroundColor Green
+        }
+      catch
+        {
+        Write-Host ("  Oops, the NIC " + $NICNAME + " does not accept a receive buffer size of " + $RECEIVEBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
+        $CHANGERBOK = "NO"
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  }
+Write-Host "Receive-Buffer optimization is complitly finished." -ForegroundColor Cyan
+
+# OPTIMIZE TRANSMIT-BUFFERS ON ALL NIC's
+# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"}
+$TRANSMITBUFFERSIZES = @(8192, 8184, 4096, 2048, 1024, 512, 256, 128)  
+Write-Host "Start Transmit-Buffer optimization" -ForegroundColor Cyan
+$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"} 
+foreach ($adapter in $NICs) 
+  {
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+  $CHANGETBOK = "NO"
+  foreach ($TRANSMITBUFFESIZE in $TRANSMITBUFFERSIZES) 
+    {
+    if ($CHANGETBOK -eq "NO")
+      {
+      Write-Host ("  Try to set transmit buffer size of NIC " + $NICNAME + " to " + $TRANSMITBUFFESIZE + "KB.") -ForegroundColor Gray
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*TransmitBuffers" -RegistryValue $TRANSMITBUFFESIZE -ErrorAction Stop
+        $CHANGETBOK = "YES"
+        Write-Host ("  The transmit buffer size of NIC " + $NICNAME + " was successfully configured to " + $TRANSMITBUFFESIZE + "KB. :-)") -ForegroundColor Green
+        }
+      catch
+        {
+        Write-Host ("  Oops, the NIC " + $NICNAME + " does not accept a transmit buffer size of " + $TRANSMITBUFFESIZE + "KB ... :-( ... never mind ... try with a smaller buffer next.") -ForegroundColor Yellow
+        $CHANGETBOK = "NO"
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  }
+Write-Host "Transmit-Buffer optimization is complitly finished." -ForegroundColor Cyan
+
 # OPTIMIZE TCPACKFREQUENCY 
 Write-Host "Start ACK-Frequency optimization" -ForegroundColor Cyan
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
@@ -407,11 +508,11 @@ foreach ($adapter in $NICs)
     }
   else
     {
-    Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
+    Write-Host ("    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created.") -ForegroundColor Yellow
     try
       {
       New-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -PropertyType DWord  -Value "1" -ErrorAction Stop
-      Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
+      Write-Host ("  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)") -ForegroundColor Green
       }
     catch
       {
@@ -459,11 +560,11 @@ foreach ($adapter in $NICs)
       }
     else
       {
-      Write-Host "    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
+      Write-Host ("    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated.") -ForegroundColor Yellow
       try
         {
         Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -Value 1 -ErrorAction Stop
-        Write-Host "  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated." -ForegroundColor Green
+        Write-Host ("  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated.") -ForegroundColor Green
         }
       catch
         {
@@ -476,11 +577,11 @@ foreach ($adapter in $NICs)
     }
   else
     {
-    Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
+    Write-Host ("    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created.") -ForegroundColor Yellow
     try
       {
       New-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -PropertyType DWord  -Value "1" -ErrorAction Stop
-      Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
+      Write-Host ("  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)") -ForegroundColor Green
       }
     catch
       {
