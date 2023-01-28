@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.04
+    Version:        1.05
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  27.01.2023
+    Creation Date:  28.01.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -49,31 +49,133 @@ foreach ($adapter in $NICs)
 Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled
 
 # DISABLE FLOW CONTROL
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
-$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
+Write-Host "Start diabling FLOW CONTROL on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support FLOW CONTROL." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*FlowControl"} 
+$DISABLEFCOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+
+  Write-Host ("    Check FLOW CONTROL Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The FLOW CONTROL is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The FLOW CONTROL is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*FlowControl" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The FLOW CONTROL on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEFCOK = $false
+      Write-Host ("  The FLOW CONTROL on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
   }
+if ($DISABLEFCOK -eq $true)
+    {
+    Write-Host "FLOW CONTROL has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling FLOW CONTROL can't finished successfully. :-(" -ForegroundColor Red
+    }
 
 # DISABLE INTERRUPT MODERATION
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
-$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
+Write-Host "Start diabling INTERRUPT MODERATION on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support INTERRUPT MODERATION." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*InterruptModeration"} 
+$DISABLEIMOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0
-  }
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
 
-# DISABLE ENERGY-EFFICIENT-ETHERNET
-# Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
-$NICs = Get-Netadapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
+  Write-Host ("    Check INTERRUPT MODERATION Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The INTERRUPT MODERATION is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The INTERRUPT MODERATION is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*InterruptModeration" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The INTERRUPT MODERATION on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEIMOK = $false
+      Write-Host ("  The INTERRUPT MODERATION on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+if ($DISABLEIMOK -eq $true)
+    {
+    Write-Host "INTERRUPT MODERATION has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling INTERRUPT MODERATION can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# DISABLE ENERGY-EFFICIENT-ETHERNET 
+Write-Host "Start diabling ENERGY-EFFICIENT-ETHERNET on all NIC's" -ForegroundColor Cyan
+Write-Host "  Identify the NICs that actually support ENERGY-EFFICIENT-ETHERNET." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*EEE"} 
+$DISABLEEEEEOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+
+  Write-Host ("    Check EEE Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+  if ($EEEVALUE -eq "0")
+    {
+    Write-Host ("    The EEE is already disabled on NIC " + $NICNAME + ", so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The EEE is enabled on NIC " + $NICNAME + ", try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*EEE" -RegistryValue 0 -ErrorAction Stop
+      Write-Host "    The EEE on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEEEEEOK = $false
+      Write-Host ("  The EEE on NIC " + $NICNAME + ", could not set to disabled. :-)") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON") 
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
   }
+if ($DISABLEEEEEOK -eq $true)
+    {
+    Write-Host "ENERGY-EFFICIENT-ETHERNET has been successfully disabled on all corresponding NIC's. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling ENERGY-EFFICIENT-ETHERNET can't finished successfully. :-(" -ForegroundColor Red
+    }
 
 # OPTIMIZE TCP CONGESTION CONTROL
 $CHANGETCPCCOK = $true
@@ -104,7 +206,7 @@ catch
 Write-Host "  Try to enable ECN" -ForegroundColor Gray
 try
   {
-  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set global ECN=Enabled" -ErrorAction Stop | Out-String -Stream
+  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set global ECN=Enabled" -ErrorAction Stop | Out-String -Stream 
   if ($COMMANDOUTPUT -eq "OK.")
     {
     Write-Host "  Enable ECN was successfully. :-)" -ForegroundColor Green
@@ -148,9 +250,9 @@ foreach ($adapter in $NICs)
     {
     if ($CHANGERBOK -eq "NO")
       {
+      Write-Host ("  Try to set receive buffer size of NIC " + $NICNAME + " to " + $RECEIVEBUFFESIZE + "KB.") -ForegroundColor Gray
       try
         {
-        Write-Host ("  Try to set receive buffer size of NIC " + $NICNAME + " to " + $RECEIVEBUFFESIZE + "KB.") -ForegroundColor Gray
         Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*ReceiveBuffers" -RegistryValue $RECEIVEBUFFESIZE -ErrorAction Stop
         $CHANGERBOK = "YES"
         Write-Host ("  The receive buffer size of NIC " + $NICNAME + " was successfully configured to " + $RECEIVEBUFFESIZE + "KB. :-)") -ForegroundColor Green
@@ -180,9 +282,9 @@ foreach ($adapter in $NICs)
     {
     if ($CHANGETBOK -eq "NO")
       {
+      Write-Host ("  Try to set transmit buffer size of NIC " + $NICNAME + " to " + $TRANSMITBUFFESIZE + "KB.") -ForegroundColor Gray
       try
         {
-        Write-Host ("  Try to set transmit buffer size of NIC " + $NICNAME + " to " + $TRANSMITBUFFESIZE + "KB.") -ForegroundColor Gray
         Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*TransmitBuffers" -RegistryValue $TRANSMITBUFFESIZE -ErrorAction Stop
         $CHANGETBOK = "YES"
         Write-Host ("  The transmit buffer size of NIC " + $NICNAME + " was successfully configured to " + $TRANSMITBUFFESIZE + "KB. :-)") -ForegroundColor Green
@@ -291,7 +393,7 @@ foreach ($adapter in $NICs)
       Write-Host "    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
       try
         {
-        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -Value 1
+        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -Value 1 -ErrorAction Stop
         Write-Host "  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated." -ForegroundColor Green
         }
       catch
@@ -308,7 +410,7 @@ foreach ($adapter in $NICs)
     Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
     try
       {
-      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -PropertyType DWord  -Value "1"
+      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -PropertyType DWord  -Value "1" -ErrorAction Stop
       Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
       }
     catch
@@ -360,7 +462,7 @@ foreach ($adapter in $NICs)
       Write-Host "    The current registry key of NIC " + $NICNAME + " does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
       try
         {
-        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -Value 1
+        Set-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -Value 1 -ErrorAction Stop
         Write-Host "  The corresponding registry entry for NIC " + $NICNAME + " has now been successfully updated." -ForegroundColor Green
         }
       catch
@@ -377,7 +479,7 @@ foreach ($adapter in $NICs)
     Write-Host "    The corresponding registry key for NIC " + $NICNAME + " does not exist and is now being created." -ForegroundColor Yellow
     try
       {
-      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -PropertyType DWord  -Value "1"
+      New-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -PropertyType DWord  -Value "1" -ErrorAction Stop
       Write-Host "  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)" -ForegroundColor Green
       }
     catch
