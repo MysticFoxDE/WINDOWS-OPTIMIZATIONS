@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.06
+    Version:        1.07
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  28.01.2023
+    Creation Date:  29.01.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -246,30 +246,163 @@ else
   }
 
 # DISABLE RSS ON ALL NIC's
-#Get-NetAdapterRss
-$NICs = Get-NetAdapter -Physical | Select-Object Name
-foreach ($adapter in $NICs) 
-  {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $NICRSSSTATUS = Get-NetAdapterRss -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object Enabled | Select Enabled -ExpandProperty Enabled | Out-String -Stream 
-  if ($NICRSSSTATUS -eq "True")
-    {Disable-NetAdapterRss -Name "$NICNAME"}
-  }
+$DISABLERSSOK = $true
+Write-Host "Start disabling RSS on all NIC's" -ForegroundColor Cyan
+Write-Host "  Check if NIC's with RSS support are avaible on this System." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RSS"} 
+$NICsWITHRSS = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
 
-# DISABLE RSC ON ALL NIC's
-#Get-NetAdapterRsc
-Set-NetOffloadGlobalSetting -ReceiveSegmentCoalescing Disabled
-$NICs = Get-NetAdapter -Physical | Select-Object Name
-foreach ($adapter in $NICs) 
+if ($NICsWITHRSS -eq 0)
   {
-  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-  $NICRSCIPV4STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv4Enabled | Select IPv4Enabled -ExpandProperty IPv4Enabled | Out-String -Stream
-  $NICRSCIPV6STATUS = Get-NetAdapterRsc -Name "$NICNAME" -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Select-Object IPv6Enabled | Select IPv6Enabled -ExpandProperty IPv6Enabled | Out-String -Stream 
-  if ($NICRSCIPV4STATUS -eq "True")
-    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv4}
-  if ($NICRSCIPV6STATUS -eq "True")
-    {Disable-NetAdapterRsc -Name "$NICNAME" -IPv6}
+      Write-Host ("  No NIC's installed in this system which support RSS, so, nothing to do. :-)") -ForegroundColor Green
   }
+else
+  {
+  Write-Host ("  " + $NICsWITHRSS + " NIC's found on this System that support RSS") -ForegroundColor Yellow
+  foreach ($adapter in $NICs) 
+    {
+    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $RSSVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+  
+    Write-Host ("    Check RSS Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+    if ($RSSVALUE -eq "0")
+      {
+      Write-Host ("    RSS on NIC " + $NICNAME + " is already disabled, so, nothing to do. :-)") -ForegroundColor Green
+      }
+    else
+      {
+      Write-Host ("    RSS on NIC " + $NICNAME + " is enabled, try next to disable it.") -ForegroundColor Yellow
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*RSS" -RegistryValue 0 -ErrorAction Stop
+        Write-Host "    RSS on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+        }
+      catch
+        {
+        $DISABLERSSOK = $false
+        Write-Host ("  The RSS on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  }
+if ($DISABLERSSOK -eq $true)
+    {
+    Write-Host "RSS has been successfully disabled on all corresponding NIC's or there is nothing to do. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling RSS can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# DISABLE RSC-IPv4 FOR ALL NIC's
+$DISABLERSCIPV4OK = $true
+Write-Host "Start disabling RSC-IPv4 on all NIC's" -ForegroundColor Cyan
+Write-Host "  Check if NIC's with RSC-IPv4 support are avaible on this System." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RscIPv4"} 
+$NICsWITHRSCIPV4 = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
+
+if ($NICsWITHRSCIPV4 -eq 0)
+  {
+      Write-Host ("  No NIC's installed in this system which support RSC-IPv4, so, nothing to do. :-)") -ForegroundColor Green
+  }
+else
+  {
+  Write-Host ("  " + $NICsWITHRSCIPV4 + " NIC's found on this System that support RSC-IPv4") -ForegroundColor Yellow
+  foreach ($adapter in $NICs) 
+    {
+    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $RSCVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+  
+    Write-Host ("    Check RSC-IPv4 Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+    if ($RSCVALUE -eq "0")
+      {
+      Write-Host ("    RSC-IPv4 on NIC " + $NICNAME + " is already disabled, so, nothing to do. :-)") -ForegroundColor Green
+      }
+    else
+      {
+      Write-Host ("    RSC-IPv4 on NIC " + $NICNAME + " is enabled, try next to disable it.") -ForegroundColor Yellow
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*RscIPv4" -RegistryValue 0 -ErrorAction Stop
+        Write-Host "    RSC-IPv4 on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+        }
+      catch
+        {
+        $DISABLERSCIPV4OK = $false
+        Write-Host ("  The RSC-IPv4 on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  }
+if ($DISABLERSCIPV4OK -eq $true)
+    {
+    Write-Host "RSC-IPv4 has been successfully disabled on all corresponding NIC's or there is nothing to do. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling RSC-IPv4 can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# DISABLE RSC-IPv6 FOR ALL NIC's
+$DISABLERSCIPV6OK = $true
+Write-Host "Start disabling RSC-IPv6 on all NIC's" -ForegroundColor Cyan
+Write-Host "  Check if NIC's with RSC-IPv6 support are avaible on this System." -ForegroundColor Gray
+$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RscIPv6"} 
+$NICsWITHRSCIPV6 = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
+
+if ($NICsWITHRSCIPV6 -eq 0)
+  {
+      Write-Host ("  No NIC's installed in this system which support RSC-IPv6, so, nothing to do. :-)") -ForegroundColor Green
+  }
+else
+  {
+  Write-Host ("  " + $NICsWITHRSCIPV6 + " NIC's found on this System that support RSC-IPv6") -ForegroundColor Yellow
+  foreach ($adapter in $NICs) 
+    {
+    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $RSCVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
+  
+    Write-Host ("    Check RSC-IPv6 Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+  
+    if ($RSCVALUE -eq "0")
+      {
+      Write-Host ("    RSC-IPv6 on NIC " + $NICNAME + " is already disabled, so, nothing to do. :-)") -ForegroundColor Green
+      }
+    else
+      {
+      Write-Host ("    RSC-IPv6 on NIC " + $NICNAME + " is enabled, try next to disable it.") -ForegroundColor Yellow
+      try
+        {
+        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*RscIPv6" -RegistryValue 0 -ErrorAction Stop
+        Write-Host "    RSC-IPv6 on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+        }
+      catch
+        {
+        $DISABLERSCIPV6OK = $false
+        Write-Host ("  The RSC-IPv6 on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+        if ($DEDAILEDDEBUG -eq "ON") 
+          {Write-Host $_ -ForegroundColor Red}
+        }
+      }
+    }
+  }
+if ($DISABLERSCIPV6OK -eq $true)
+    {
+    Write-Host "RSC-IPv6 has been successfully disabled on all corresponding NIC's or there is nothing to do. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Disabling RSC-IPv6 can't finished successfully. :-(" -ForegroundColor Red
+    }
 
 # DISABLE FLOW CONTROL ON ALL NIC's
 Write-Host "Start disabling FLOW CONTROL on all NIC's" -ForegroundColor Cyan
@@ -595,9 +728,11 @@ foreach ($adapter in $NICs)
 if ($CHANGETCPDELAYOK -eq $true)
     {
     Write-Host "TCP-Delay optimization is finished successfully. :-)" -ForegroundColor Cyan
+    Write-Host "!!! To ensure that all changes are applied, the computer must be restarted. !!!" -ForegroundColor Magenta
     }
   else
     {
     $FULLYCOMPLETED = $false
-    Write-Host "TCP-Delay optimization can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host ("TCP-Delay optimization can't finished successfully. :-(") -ForegroundColor Red
+    Write-Host ("!!! And even if not everything went through cleanly, the computer should still be restarted so that at least what could be optimized works properly. ;-) !!!") -ForegroundColor Magenta
     }
