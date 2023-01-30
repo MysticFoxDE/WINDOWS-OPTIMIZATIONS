@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.07
+    Version:        1.08
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  29.01.2023
+    Creation Date:  30.01.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -58,7 +58,7 @@ $DISABLERSSOK = $true
 Write-Host "Start disabling RECEIVE SIDE SCALING on Windows TCP-Stack" -ForegroundColor Cyan
 Write-Host "  Check current state of RECEIVE SIDE SCALING" -ForegroundColor Gray
 $STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSideScaling | Select ReceiveSideScaling -ExpandProperty ReceiveSideScaling | Out-String -Stream
-if ($STATUSPCF -eq "Disabled")
+if ($STATUSRSS -eq "Disabled")
   {
   Write-Host "  The RECEIVE SIDE SCALING is already disabled, so nothing to do. :-)" -ForegroundColor Green
   }
@@ -89,11 +89,11 @@ if ($DISABLERSSOK -eq $true)
     }
 
 # DISABLE RECEIVE SEGMENT COALESCING ON WINDOWS TCP-STACK
-$DISABLERSSOK = $true
+$DISABLERSCOK = $true
 Write-Host "Start disabling RECEIVE SEGMENT COALESCING on Windows TCP-Stack" -ForegroundColor Cyan
 Write-Host "  Check current state of RECEIVE SEGMENT COALESCING" -ForegroundColor Gray
-$STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSegmentCoalescing | Select ReceiveSegmentCoalescing -ExpandProperty ReceiveSegmentCoalescing | Out-String -Stream
-if ($STATUSPCF -eq "Disabled")
+$STATUSRSC = Get-NetOffloadGlobalSetting | Select-Object ReceiveSegmentCoalescing | Select ReceiveSegmentCoalescing -ExpandProperty ReceiveSegmentCoalescing | Out-String -Stream
+if ($STATUSRSC -eq "Disabled")
   {
   Write-Host "  The RECEIVE SEGMENT COALESCING is already disabled, so nothing to do. :-)" -ForegroundColor Green
   }
@@ -107,13 +107,13 @@ else
     }
   catch
     {
-    $DISABLERSSOK = $false
+    $DISABLERSCOK = $false
     Write-Host ("  The RECEIVE SEGMENT COALESCING could not set to disabled. :-(") -ForegroundColor Red
     if ($DEDAILEDDEBUG -eq "ON") 
       {Write-Host $_ -ForegroundColor Red}
     }
   }
-if ($DISABLERSSOK -eq $true)
+if ($DISABLERSCOK -eq $true)
     {
     Write-Host "Disabling RECEIVE SEGMENT COALESCING has been finished successfully. :-)" -ForegroundColor Cyan
     }
