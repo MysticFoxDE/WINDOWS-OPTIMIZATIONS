@@ -25,7 +25,7 @@ Write-Host "  Check current state of PACKET COALESCING FILTER" -ForegroundColor 
 $STATUSPCF = Get-NetOffloadGlobalSetting | Select-Object PacketCoalescingFilter | Select PacketCoalescingFilter -ExpandProperty PacketCoalescingFilter | Out-String -Stream
 if ($STATUSPCF -eq "Disabled")
   {
-  Write-Host "  The PACKET COALESCING FILTER is allready disabled, so nothing to do. :-)" -ForegroundColor Green
+  Write-Host "  The PACKET COALESCING FILTER is already disabled, so nothing to do. :-)" -ForegroundColor Green
   }
 else
   {
@@ -60,7 +60,7 @@ Write-Host "  Check current state of RECEIVE SIDE SCALING" -ForegroundColor Gray
 $STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSideScaling | Select ReceiveSideScaling -ExpandProperty ReceiveSideScaling | Out-String -Stream
 if ($STATUSPCF -eq "Disabled")
   {
-  Write-Host "  The RECEIVE SIDE SCALING is allready disabled, so nothing to do. :-)" -ForegroundColor Green
+  Write-Host "  The RECEIVE SIDE SCALING is already disabled, so nothing to do. :-)" -ForegroundColor Green
   }
 else
   {
@@ -95,7 +95,7 @@ Write-Host "  Check current state of RECEIVE SEGMENT COALESCING" -ForegroundColo
 $STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSegmentCoalescing | Select ReceiveSegmentCoalescing -ExpandProperty ReceiveSegmentCoalescing | Out-String -Stream
 if ($STATUSPCF -eq "Disabled")
   {
-  Write-Host "  The RECEIVE SEGMENT COALESCING is allready disabled, so nothing to do. :-)" -ForegroundColor Green
+  Write-Host "  The RECEIVE SEGMENT COALESCING is already disabled, so nothing to do. :-)" -ForegroundColor Green
   }
 else
   {
