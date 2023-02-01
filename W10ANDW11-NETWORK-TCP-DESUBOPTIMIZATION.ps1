@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.08
+    Version:        1.09
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  30.01.2023
+    Creation Date:  01.02.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -17,6 +17,103 @@ $DEDAILEDDEBUG = "OFF"
 
 #BASIC VARIABLES
 $FULLYCOMPLETED = $true
+
+# CREATE A BACKUP OF THE EXISTING SETTINGS
+$BAKLOGPATH = "C:\BACKUP"
+$BAKLOGFILENAME = "WINDOWS10AND11-NETWORK-DESUBOPTIMIZATION.log"
+$BAKLOGDATE = Get-Date
+if (!(Test-Path $PATH)) 
+  {New-Item -Path $PATH -ItemType Directory}
+
+Write-Host ("Create a backup of the existing configuration under " + $BAKLOGPATH + "\" + $BAKLOGFILENAME) -ForegroundColor Cyan
+"************************************************************************************************************" >> $PATH\$BAKLOGFILENAME
+"*** Beginning of the configuration-backup from " + $BAKLOGDATE >> $PATH\$BAKLOGFILENAME
+"************************************************************************************************************" >> $PATH\$BAKLOGFILENAME  
+" " >> $PATH\$BAKLOGFILENAME  
+"Get-NetOffloadGlobalSetting: " >> $PATH\$BAKLOGFILENAME  
+Get-NetOffloadGlobalSetting >> $PATH\$BAKLOGFILENAME
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME  
+"netsh int tcp show global: " >> $PATH\$BAKLOGFILENAME 
+netsh int tcp show global >> $PATH\$BAKLOGFILENAME 
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"netsh int tcp show supplemental:" >> $PATH\$BAKLOGFILENAME
+netsh int tcp show supplemental >> $PATH\$BAKLOGFILENAME
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Get-NetAdapterAdvancedProperty:" >> $PATH\$BAKLOGFILENAME
+Get-NetAdapterAdvancedProperty | FT -AutoSize >> $PATH\$BAKLOGFILENAME
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Get-NetAdapterRsc:" >> $PATH\$BAKLOGFILENAME
+Get-NetAdapterRsc | FT -AutoSize >> $PATH\$BAKLOGFILENAME
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Get-NetAdapterRss:" >> $PATH\$BAKLOGFILENAME
+Get-NetAdapterRss >> $PATH\$BAKLOGFILENAME
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Status TCP-Profile: (Registry)" >> $PATH\$BAKLOGFILENAME
+$TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
+$CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
+if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
+else
+  {$AREEQUAL = $false}
+if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  {
+    ("The 06000000 Key is present in the registry with value " + $CHECKVALUE + ".") >> $PATH\$BAKLOGFILENAME
+  }
+else
+  {
+    ("The 06000000 Key is NOT present in the registry.") >> $PATH\$BAKLOGFILENAME
+  }
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Status ACK-Frequency: (Registry)" >> $PATH\$BAKLOGFILENAME
+$NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
+foreach ($adapter in $NICs) 
+  {
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
+  $TARGETVALUE = 1
+  $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
+  else
+    {$AREEQUAL = $false}
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {
+    ("The TcpAckFrequency Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $PATH\$BAKLOGFILENAME
+    }
+  else
+    {
+    ("The TcpAckFrequency Key for NIC " + $NICNAME + " is NOT present in the registry.") >> $PATH\$BAKLOGFILENAME
+    }
+  }
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"Status TCP-Delay: (Registry)" >> $PATH\$BAKLOGFILENAME
+$NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
+foreach ($adapter in $NICs) 
+  {
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
+  $TARGETVALUE = 1
+  $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
+  else
+    {$AREEQUAL = $false}
+  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+    {
+    ("The TcpNoDelay Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $PATH\$BAKLOGFILENAME
+    }
+  else
+    {
+    ("The TcpNoDelay Key for NIC " + $NICNAME + " is NOT present in the registry.") >> $PATH\$BAKLOGFILENAME
+    }
+  }
+"------------------------------------------------------------------------------------------------------------" >> $PATH\$BAKLOGFILENAME
+"************************************************************************************************************" >> $PATH\$BAKLOGFILENAME
+"*** End of the configuration-backup from " + $BAKLOGDATE >> $PATH\$BAKLOGFILENAME
+"************************************************************************************************************" >> $PATH\$BAKLOGFILENAME 
+Write-Host ("Backup of the existing configuration is finished. :-)") -ForegroundColor Cyan
 
 # DISABLE PACKET COALESCING FILTER ON WINDOWS TCP-STACK
 $DISABLEPCFOK = $true
