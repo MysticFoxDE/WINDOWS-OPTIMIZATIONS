@@ -5,7 +5,7 @@
  .NOTES 
     Version:        1.09
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  01.02.2023
+    Creation Date:  02.02.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -22,8 +22,8 @@ $FULLYCOMPLETED = $true
 $BAKLOGPATH = "C:\BACKUP"
 $BAKLOGFILENAME = "WINDOWS10AND11-NETWORK-DESUBOPTIMIZATION.log"
 $BAKLOGDATE = Get-Date
-if (!(Test-Path $PATH)) 
-  {New-Item -Path $PATH -ItemType Directory}
+if (!(Test-Path $BAKLOGPATH)) 
+  {New-Item -Path $BAKLOGPATH -ItemType Directory}
 
 Write-Host ("Create a backup of the existing configuration under " + $BAKLOGPATH + "\" + $BAKLOGFILENAME) -ForegroundColor Cyan
 "************************************************************************************************************" >> $PATH\$BAKLOGFILENAME
