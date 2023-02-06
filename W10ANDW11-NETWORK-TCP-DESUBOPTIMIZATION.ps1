@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.09
+    Version:        1.10
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  02.02.2023
+    Creation Date:  06.02.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -729,7 +729,7 @@ foreach ($adapter in $NICs)
         }
       catch
         {
-        $CHANGETCPPROFILEOK = $false
+        $CHANGETCPACKFREQUENCYOK = $false
         Write-Host ("  The registry key for NIC " + $NICNAME + " could not be updated due to an error. :-(") -ForegroundColor Red
         if ($DEDAILEDDEBUG -eq "ON") 
           {Write-Host $_ -ForegroundColor Red}
@@ -746,14 +746,14 @@ foreach ($adapter in $NICs)
       }
     catch
       {
-      $CHANGETCPPROFILEOK = $false
+      $CHANGETCPACKFREQUENCYOK = $false
       Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
       if ($DEDAILEDDEBUG -eq "ON") 
         {Write-Host $_ -ForegroundColor Red}
       }
     }
   }
-if ($CHANGETCPPROFILEOK -eq $true)
+if ($CHANGETCPACKFREQUENCYOK -eq $true)
     {
     Write-Host "ACK-Frequency optimization is finished successfully. :-)" -ForegroundColor Cyan
     }
