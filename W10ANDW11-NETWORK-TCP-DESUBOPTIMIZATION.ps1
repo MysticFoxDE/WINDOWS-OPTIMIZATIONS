@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.10
+    Version:        1.11
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  06.02.2023
+    Creation Date:  07.02.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
@@ -226,7 +226,7 @@ Write-Host "Start TCP congestion controll optimization" -ForegroundColor Cyan
 Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP" -ForegroundColor Gray
 try
   {
-  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set supplemental template=Datacenter congestionprovider=DCTCP" -ErrorAction Stop | Out-String -Stream
+  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set supplemental template=DatacenterCustom congestionprovider=DCTCP" -ErrorAction Stop | Out-String -Stream
   if ($COMMANDOUTPUT -eq "OK.")
     {
     Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP was successfully. :-)" -ForegroundColor Green
