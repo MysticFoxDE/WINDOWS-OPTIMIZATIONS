@@ -69,7 +69,7 @@ $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
 foreach ($adapter in $NICs) 
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
@@ -92,7 +92,7 @@ $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
 foreach ($adapter in $NICs) 
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
@@ -358,7 +358,7 @@ else
   Write-Host ("  " + $NICsWITHRSS + " NIC's found on this System that support RSS") -ForegroundColor Yellow
   foreach ($adapter in $NICs) 
     {
-    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
     $RSSVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
   
     Write-Host ("    Check RSS Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -411,7 +411,7 @@ else
   Write-Host ("  " + $NICsWITHRSCIPV4 + " NIC's found on this System that support RSC-IPv4") -ForegroundColor Yellow
   foreach ($adapter in $NICs) 
     {
-    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
     $RSCVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
   
     Write-Host ("    Check RSC-IPv4 Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -464,7 +464,7 @@ else
   Write-Host ("  " + $NICsWITHRSCIPV6 + " NIC's found on this System that support RSC-IPv6") -ForegroundColor Yellow
   foreach ($adapter in $NICs) 
     {
-    $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
     $RSCVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
   
     Write-Host ("    Check RSC-IPv6 Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -508,7 +508,7 @@ $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object
 $DISABLEFCOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
 
   Write-Host ("    Check FLOW CONTROL Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -551,7 +551,7 @@ $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object
 $DISABLEIMOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
 
   Write-Host ("    Check INTERRUPT MODERATION Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -594,7 +594,7 @@ $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object
 $DISABLEEEEEOK = $true
 foreach ($adapter in $NICs) 
   {
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $EEEVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream 
 
   Write-Host ("    Check EEE Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -701,7 +701,7 @@ $CHANGETCPACKFREQUENCYOK = $true
 foreach ($adapter in $NICs) 
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
 
   Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
@@ -770,7 +770,7 @@ $CHANGETCPDELAYOK = $true
 foreach ($adapter in $NICs) 
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-  $NICNAME = $adapter | Select-Object Name | Select Neme -ExpandProperty Name | Out-String -Stream
+  $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream 
 
   Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
