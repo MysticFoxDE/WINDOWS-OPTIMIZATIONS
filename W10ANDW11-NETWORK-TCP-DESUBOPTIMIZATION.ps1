@@ -10,6 +10,7 @@
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
     https://community.spiceworks.com/topic/post/10299845
+    https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
 #>
 
 # DETAILED SCRIPTDEBUGING ON=Enabled OFF=Disabled
