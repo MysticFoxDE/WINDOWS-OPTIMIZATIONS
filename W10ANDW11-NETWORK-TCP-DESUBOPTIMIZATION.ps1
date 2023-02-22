@@ -3,15 +3,24 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.   
  
  .NOTES 
-    Version:        1.11
+    Version:        1.12
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  07.02.2023
+    Creation Date:  22.02.2023
 
 .LINK 
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
     https://community.spiceworks.com/topic/post/10299845
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
 #>
+
+# PROMPT THE USER TO ELEVATE THE SCRIPT
+# Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.   
+if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
+  {
+  $arguments = "& '" + $myInvocation.MyCommand.Definition + "'"
+  Start-Process powershell -Verb runAs -ArgumentList $arguments
+  exit
+  }
 
 # DETAILED SCRIPTDEBUGING ON=Enabled OFF=Disabled
 $DEDAILEDDEBUG = "OFF"
