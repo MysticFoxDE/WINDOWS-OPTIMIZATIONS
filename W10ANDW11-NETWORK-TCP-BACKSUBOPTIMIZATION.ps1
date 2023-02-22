@@ -13,6 +13,15 @@
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
 #>
 
+# PROMPT THE USER TO ELEVATE THE SCRIPT
+# Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.   
+if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
+  {
+  $arguments = "& '" + $myInvocation.MyCommand.Definition + "'"
+  Start-Process powershell -Verb runAs -ArgumentList $arguments
+  exit
+  }
+
 #SET ALL NIC ADVANCED SETTINGS TO DEFAULT
 Get-Netadapter -Physical | Reset-NetAdapterAdvancedProperty -DisplayName "*"
 
@@ -40,9 +49,9 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID
 foreach ($adapter in $NICs) 
   {
-    $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-    $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
-    Remove-ItemProperty -Path "$REGKEYPATH" -Name 'TcpAckFrequency'
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
+  Remove-ItemProperty -Path "$REGKEYPATH" -Name 'TcpAckFrequency'
   }
 
 
@@ -50,7 +59,7 @@ foreach ($adapter in $NICs)
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID
 foreach ($adapter in $NICs) 
   {
-    $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
-    $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
-        Remove-ItemProperty -Path "$REGKEYPATH" -Name 'TcpNoDelay'
+  $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
+  $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
+  Remove-ItemProperty -Path "$REGKEYPATH" -Name 'TcpNoDelay'
   }
