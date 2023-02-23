@@ -16,11 +16,11 @@
 # PROMPT THE USER TO ELEVATE THE SCRIPT
 # Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.   
 if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
-  {
-  $arguments = "& '" + $myInvocation.MyCommand.Definition + "'"
+{
+  $arguments = "-NoExit -ExecutionPolicy Bypass -File `"$($myInvocation.MyCommand.Definition)`""
   Start-Process powershell -Verb runAs -ArgumentList $arguments
   exit
-  }
+}
 
 # DETAILED SCRIPTDEBUGING ON=Enabled OFF=Disabled
 $DEDAILEDDEBUG = "OFF"
