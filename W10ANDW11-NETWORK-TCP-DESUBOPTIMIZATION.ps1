@@ -232,7 +232,7 @@ if ($DISABLERSCOK -eq $true)
 
 # OPTIMIZE TCP CONGESTION CONTROL
 $CHANGETCPCCOK = $true
-Write-Host "Start TCP congestion controll optimization" -ForegroundColor Cyan
+Write-Host "Start TCP congestion control optimization" -ForegroundColor Cyan
 Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP" -ForegroundColor Gray
 try
   {
@@ -282,12 +282,12 @@ catch
 
 if ($CHANGETCPCCOK -eq $true)
     {
-    Write-Host "TCP congestion controll optimization is finished successfully. :-)" -ForegroundColor Cyan
+    Write-Host "TCP congestion control optimization is finished successfully. :-)" -ForegroundColor Cyan
     }
   else
     {
     $FULLYCOMPLETED = $false
-    Write-Host "TCP congestion controll can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host "TCP congestion control can't finished successfully. :-(" -ForegroundColor Red
     }
 
 # CHANGE TCP PROFILE TO DATACENTERCUSTOM 
@@ -355,7 +355,7 @@ else
 # DISABLE RSS ON ALL NIC's
 $DISABLERSSOK = $true
 Write-Host "Start disabling RSS on all NIC's" -ForegroundColor Cyan
-Write-Host "  Check if NIC's with RSS support are avaible on this System." -ForegroundColor Gray
+Write-Host "  Check if NIC's with RSS support are available on this System." -ForegroundColor Gray
 $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RSS"} 
 $NICsWITHRSS = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
 
@@ -408,7 +408,7 @@ if ($DISABLERSSOK -eq $true)
 # DISABLE RSC-IPv4 FOR ALL NIC's
 $DISABLERSCIPV4OK = $true
 Write-Host "Start disabling RSC-IPv4 on all NIC's" -ForegroundColor Cyan
-Write-Host "  Check if NIC's with RSC-IPv4 support are avaible on this System." -ForegroundColor Gray
+Write-Host "  Check if NIC's with RSC-IPv4 support are available on this System." -ForegroundColor Gray
 $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RscIPv4"} 
 $NICsWITHRSCIPV4 = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
 
@@ -461,7 +461,7 @@ if ($DISABLERSCIPV4OK -eq $true)
 # DISABLE RSC-IPv6 FOR ALL NIC's
 $DISABLERSCIPV6OK = $true
 Write-Host "Start disabling RSC-IPv6 on all NIC's" -ForegroundColor Cyan
-Write-Host "  Check if NIC's with RSC-IPv6 support are avaible on this System." -ForegroundColor Gray
+Write-Host "  Check if NIC's with RSC-IPv6 support are available on this System." -ForegroundColor Gray
 $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RscIPv6"} 
 $NICsWITHRSCIPV6 = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
 
@@ -670,7 +670,7 @@ foreach ($adapter in $NICs)
       }
     }
   }
-Write-Host "Receive-Buffer optimization is complitly finished." -ForegroundColor Cyan
+Write-Host "Receive-Buffer optimization is completely finished." -ForegroundColor Cyan
 
 # OPTIMIZE TRANSMIT-BUFFERS ON ALL NIC's
 # Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*TransmitBuffers"}
@@ -702,7 +702,7 @@ foreach ($adapter in $NICs)
       }
     }
   }
-Write-Host "Transmit-Buffer optimization is complitly finished." -ForegroundColor Cyan
+Write-Host "Transmit-Buffer optimization is completely finished." -ForegroundColor Cyan
 
 # OPTIMIZE TCPACKFREQUENCY 
 Write-Host "Start ACK-Frequency optimization" -ForegroundColor Cyan
