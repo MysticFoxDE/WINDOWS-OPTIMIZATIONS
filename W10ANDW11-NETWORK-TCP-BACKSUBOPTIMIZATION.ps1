@@ -1,21 +1,21 @@
-<# 
+<#
 .SYNOPSIS
-    This script change all settings to default, that are optimized by the "W10ANDW11-NETWORK-TCP-DESUBOPTIMIZATION" skript.   
- 
- .NOTES 
+    This script change all settings to default, that are optimized by the "W10ANDW11-NETWORK-TCP-DESUBOPTIMIZATION" skript.
+
+ .NOTES
     Version:        0.09
     Author:         MysticFoxDE (Alexander Fuchs)
     Creation Date:  22.02.2023
 
-.LINK 
+.LINK
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
     https://community.spiceworks.com/topic/post/10299845
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
 #>
 
 # PROMPT THE USER TO ELEVATE THE SCRIPT
-# Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.   
-if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) 
+# Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.
+if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
 {
   $arguments = "-NoExit -ExecutionPolicy Bypass -File `"$($myInvocation.MyCommand.Definition)`""
   Start-Process powershell -Verb runAs -ArgumentList $arguments
@@ -47,7 +47,7 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1
 
 # SET TCPACKFREQUENCY TO DEFAULT
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID
-foreach ($adapter in $NICs) 
+foreach ($adapter in $NICs)
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
@@ -57,7 +57,7 @@ foreach ($adapter in $NICs)
 
 # SET TCPDELAY TO DEFAULT
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID
-foreach ($adapter in $NICs) 
+foreach ($adapter in $NICs)
   {
   $NICGUID = $adapter | Select-Object DeviceID | Select DeviceID -ExpandProperty DeviceID | Out-String -Stream
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
