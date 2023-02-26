@@ -61,11 +61,7 @@ Get-NetAdapterRss >> $BAKLOGPATH\$BAKLOGFILENAME
 "Status TCP-Profile: (Registry)" >> $BAKLOGPATH\$BAKLOGFILENAME
 $TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
 $CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
-if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-  {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-else
-  {$AREEQUAL = $false}
-if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
   {
     ("The 06000000 Key is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
   }
@@ -83,11 +79,7 @@ foreach ($adapter in $NICs)
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-  else
-    {$AREEQUAL = $false}
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
     ("The TcpAckFrequency Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
     }
@@ -106,11 +98,7 @@ foreach ($adapter in $NICs)
   $REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$NICGUID\" | Out-String -Stream
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-  else
-    {$AREEQUAL = $false}
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
     ("The TcpNoDelay Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
     }
@@ -296,14 +284,11 @@ Write-Host "  Check if the key already exists in the registry." -ForegroundColor
 $CHANGETCPPROFILEOK = $false
 $TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
 $CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
-if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-  {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-else
-  {$AREEQUAL = $false}
-if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
   {
   Write-Host "  The value is present in the registry." -ForegroundColor Yellow
   Write-Host "  Checking the already existing parameter." -ForegroundColor Gray
+  $AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0
   if ($AREEQUAL -eq $true)
     {
     Write-Host "  The settings are already set correctly, no further measures are required." -ForegroundColor Green
@@ -717,14 +702,11 @@ foreach ($adapter in $NICs)
   Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-  else
-    {$AREEQUAL = $false}
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
     Write-Host ("    The key for NIC " + $NICNAME + " is present in the registry.") -ForegroundColor Yellow
     Write-Host ("    Checking the already existing key of NIC " + $NICNAME + ".") -ForegroundColor Gray
+    $AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0
     if ($AREEQUAL -eq $true)
       {
       Write-Host ("  The settings of NIC " + $NICNAME + " are already set correctly, no further measures are required.") -ForegroundColor Green
@@ -786,14 +768,11 @@ foreach ($adapter in $NICs)
   Write-Host ("  Check if the key already exists in the registry for NIC " + $NICNAME + " .") -ForegroundColor Gray
   $TARGETVALUE = 1
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
-    {$AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0}
-  else
-    {$AREEQUAL = $false}
-  if (($CHECKVALUE -ne $null) -or ($CHECKVALUE.Length -ne 0))
+  if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
     Write-Host ("    The key for NIC " + $NICNAME + " is present in the registry.") -ForegroundColor Yellow
     Write-Host ("    Checking the already existing key of NIC " + $NICNAME + ".") -ForegroundColor Gray
+    $AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0
     if ($AREEQUAL -eq $true)
       {
       Write-Host ("  The settings of NIC " + $NICNAME + " are already set correctly, no further measures are required.") -ForegroundColor Green
