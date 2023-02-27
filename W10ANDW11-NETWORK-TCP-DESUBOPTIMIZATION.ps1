@@ -8,9 +8,12 @@
     Creation Date:  22.02.2023
 
 .LINK
+    https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
+    https://www.borncity.com/blog/2023/01/30/microsofts-tcp-murks-in-windows-10-und-11-optimierung-ist-mglich
+    https://www.borncity.com/blog/2023/02/14/windows-10-11-grottige-netzwerktransfer-leistung-hohe-windows-11-cpu-last-teil-1
+    https://www.borncity.com/blog/2023/02/14/windows-11-netzwerktransfer-leistung-und-cpu-last-optimieren-teil-2
     https://administrator.de/tutorial/wie-man-das-windows-10-und-11-tcp-handling-wieder-desuboptimieren-kann-5529700198.html#comment-5584260697
     https://community.spiceworks.com/topic/post/10299845
-    https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
 #>
 
 # PROMPT THE USER TO ELEVATE THE SCRIPT
