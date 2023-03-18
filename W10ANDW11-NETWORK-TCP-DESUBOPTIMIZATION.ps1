@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.
 
  .NOTES
-    Version:        1.12
+    Version:        1.14
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  22.02.2023
+    Creation Date:  18.03.2023
 
 .LINK
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
@@ -19,11 +19,11 @@
 # PROMPT THE USER TO ELEVATE THE SCRIPT
 # Great thanks to "Karl Wester-Ebbinghaus/Karl-WE" for this very useful aid.
 if (-not (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
-{
+  {
   $arguments = "-NoExit -ExecutionPolicy Bypass -File `"$($myInvocation.MyCommand.Definition)`""
   Start-Process powershell -Verb runAs -ArgumentList $arguments
   exit
-}
+  }
 
 # DETAILED SCRIPTDEBUGING ON=Enabled OFF=Disabled
 $DEDAILEDDEBUG = "OFF"
@@ -38,42 +38,43 @@ $BAKLOGDATE = Get-Date
 if (!(Test-Path $BAKLOGPATH))
   {New-Item -Path $BAKLOGPATH -ItemType Directory}
 
-Write-Host ("Create a backup of the existing configuration under " + $BAKLOGPATH + "\" + $BAKLOGFILENAME) -ForegroundColor Cyan
-"************************************************************************************************************" >> $BAKLOGPATH\$BAKLOGFILENAME
-"*** Beginning of the configuration-backup from " + $BAKLOGDATE >> $BAKLOGPATH\$BAKLOGFILENAME
-"************************************************************************************************************" >> $BAKLOGPATH\$BAKLOGFILENAME
-" " >> $BAKLOGPATH\$BAKLOGFILENAME
-"Get-NetOffloadGlobalSetting: " >> $BAKLOGPATH\$BAKLOGFILENAME
-Get-NetOffloadGlobalSetting >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"netsh int tcp show global: " >> $BAKLOGPATH\$BAKLOGFILENAME
-netsh int tcp show global >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"netsh int tcp show supplemental:" >> $BAKLOGPATH\$BAKLOGFILENAME
-netsh int tcp show supplemental >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Get-NetAdapterAdvancedProperty:" >> $BAKLOGPATH\$BAKLOGFILENAME
-Get-NetAdapterAdvancedProperty | FT -AutoSize >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Get-NetAdapterRsc:" >> $BAKLOGPATH\$BAKLOGFILENAME
-Get-NetAdapterRsc | FT -AutoSize >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Get-NetAdapterRss:" >> $BAKLOGPATH\$BAKLOGFILENAME
-Get-NetAdapterRss >> $BAKLOGPATH\$BAKLOGFILENAME
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Status TCP-Profile: (Registry)" >> $BAKLOGPATH\$BAKLOGFILENAME
+Start-Transcript -Path "$BAKLOGPATH\$BAKLOGFILENAME" -Append
+Write-Host (" ") -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host ("*** Beginning of the configuration-backup from " + $BAKLOGDATE) -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host (" ") -ForegroundColor White
+Write-Host ("Get-NetOffloadGlobalSetting: ") -ForegroundColor White
+Get-NetOffloadGlobalSetting
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("netsh int tcp show global: ") -ForegroundColor White
+netsh int tcp show global
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("netsh int tcp show supplemental:") -ForegroundColor White
+netsh int tcp show supplemental
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Get-NetAdapterAdvancedProperty:") -ForegroundColor White
+Get-NetAdapterAdvancedProperty | FT -AutoSize
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Get-NetAdapterRsc:") -ForegroundColor White
+Get-NetAdapterRsc | FT -AutoSize
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Get-NetAdapterRss:") -ForegroundColor White
+Get-NetAdapterRss | FL
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Status TCP-Profile: (Registry)") -ForegroundColor White
 $TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
 $CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
 if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
   {
-    ("The 06000000 Key is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
+  Write-Host ("The 06000000 Key is present in the registry with value " + $CHECKVALUE + ".") -ForegroundColor White
   }
 else
   {
-    ("The 06000000 Key is NOT present in the registry.") >> $BAKLOGPATH\$BAKLOGFILENAME
+  Write-Host ("The 06000000 Key is NOT present in the registry.") -ForegroundColor White
   }
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Status ACK-Frequency: (Registry)" >> $BAKLOGPATH\$BAKLOGFILENAME
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Status ACK-Frequency: (Registry)") -ForegroundColor White
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
 foreach ($adapter in $NICs)
   {
@@ -84,15 +85,15 @@ foreach ($adapter in $NICs)
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpAckFrequency" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpAckFrequency"
   if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
-    ("The TcpAckFrequency Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
+    Write-Host ("The TcpAckFrequency Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") -ForegroundColor White
     }
   else
     {
-    ("The TcpAckFrequency Key for NIC " + $NICNAME + " is NOT present in the registry.") >> $BAKLOGPATH\$BAKLOGFILENAME
+    Write-Host ("The TcpAckFrequency Key for NIC " + $NICNAME + " is NOT present in the registry.") -ForegroundColor White
     }
   }
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"Status TCP-Delay: (Registry)" >> $BAKLOGPATH\$BAKLOGFILENAME
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Status TCP-Delay: (Registry)") -ForegroundColor White
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
 foreach ($adapter in $NICs)
   {
@@ -103,18 +104,22 @@ foreach ($adapter in $NICs)
   $CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "TcpNoDelay" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "TcpNoDelay"
   if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     {
-    ("The TcpNoDelay Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") >> $BAKLOGPATH\$BAKLOGFILENAME
+    Write-Host ("The TcpNoDelay Key for NIC " + $NICNAME + " is present in the registry with value " + $CHECKVALUE + ".") -ForegroundColor White
     }
   else
     {
-    ("The TcpNoDelay Key for NIC " + $NICNAME + " is NOT present in the registry.") >> $BAKLOGPATH\$BAKLOGFILENAME
+    Write-Host ("The TcpNoDelay Key for NIC " + $NICNAME + " is NOT present in the registry.") -ForegroundColor White
     }
   }
-"------------------------------------------------------------------------------------------------------------" >> $BAKLOGPATH\$BAKLOGFILENAME
-"************************************************************************************************************" >> $BAKLOGPATH\$BAKLOGFILENAME
-"*** End of the configuration-backup from " + $BAKLOGDATE >> $BAKLOGPATH\$BAKLOGFILENAME
-"************************************************************************************************************" >> $BAKLOGPATH\$BAKLOGFILENAME
-Write-Host ("Backup of the existing configuration is finished. :-)") -ForegroundColor Cyan
+Write-Host (" ") -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host ("*** End of the configuration-backup from " + $BAKLOGDATE) -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host (" ") -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host ("*** Beginning of change logging from " + $BAKLOGDATE) -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host (" ") -ForegroundColor White
 
 # DISABLE PACKET COALESCING FILTER ON WINDOWS TCP-STACK
 $DISABLEPCFOK = $true
@@ -814,6 +819,7 @@ foreach ($adapter in $NICs)
       }
     }
   }
+
 if ($CHANGETCPDELAYOK -eq $true)
     {
     Write-Host "TCP-Delay optimization is finished successfully. :-)" -ForegroundColor Cyan
@@ -825,3 +831,9 @@ if ($CHANGETCPDELAYOK -eq $true)
     Write-Host ("TCP-Delay optimization can't finished successfully. :-(") -ForegroundColor Red
     Write-Host ("!!! And even if not everything went through cleanly, the computer should still be restarted so that at least what could be optimized works properly. ;-) !!!") -ForegroundColor Magenta
     }
+Write-Host (" ") -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host ("*** End of change logging from " + $BAKLOGDATE) -ForegroundColor White
+Write-Host ("************************************************************************************************************") -ForegroundColor White
+Write-Host (" ") -ForegroundColor White
+Stop-Transcript
