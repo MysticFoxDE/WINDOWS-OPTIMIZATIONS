@@ -3,7 +3,7 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.
 
  .NOTES
-    Version:        1.15
+    Version:        2.00
     Author:         MysticFoxDE (Alexander Fuchs)
     Creation Date:  19.03.2023
 
@@ -139,73 +139,97 @@ Write-Host ("*** Beginning of change logging from " + $BAKLOGDATE) -ForegroundCo
 Write-Host ("************************************************************************************************************") -ForegroundColor White
 Write-Host (" ") -ForegroundColor White
 
+# CHECK HYPER-V STATUS
+Write-Host "Check Hyper-V status" -ForegroundColor Cyan
+$HYPERVSTATE = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V | Select-Object State | Select State -ExpandProperty State | Out-String -Stream
+if($HYPERVSTATE -eq "Enabled") 
+  {
+    Write-Host "  Hyper-V is enabled." -ForegroundColor Yellow
+  } 
+else 
+  {
+    Write-Host "  Hyper-V is disabled." -ForegroundColor Green
+  }
+Write-Host " "
+
 # RESET TCP STACK
+Write-Host "Reset the TCP-Stack settings" -ForegroundColor Cyan
 netsh interface tcp reset
 
 # RESET WINSOCK
+Write-Host "Reset the WINSOCK settings" -ForegroundColor Cyan
 netsh winsock reset
 
 # DISABLE PACKET COALESCING FILTER ON WINDOWS TCP-STACK
-$DISABLEPCFOK = $true
-Write-Host "Start disabling PACKET COALESCING FILTER on Windows TCP-Stack" -ForegroundColor Cyan
-Write-Host "  Check current state of PACKET COALESCING FILTER" -ForegroundColor Gray
-$STATUSPCF = Get-NetOffloadGlobalSetting | Select-Object PacketCoalescingFilter | Select PacketCoalescingFilter -ExpandProperty PacketCoalescingFilter | Out-String -Stream
-if ($STATUSPCF -eq "Disabled")
+if ($HYPERVSTATE -eq "Disabled")
   {
-  Write-Host "  The PACKET COALESCING FILTER is already disabled, so nothing to do. :-)" -ForegroundColor Green
-  }
-else
-  {
-  Write-Host "  The PACKET COALESCING FILTER is enabled, try next to disable it." -ForegroundColor Yellow
-  try
+  $DISABLEPCFOK = $true
+  Write-Host "Start disabling PACKET COALESCING FILTER on Windows TCP-Stack" -ForegroundColor Cyan
+  Write-Host "  Check current state of PACKET COALESCING FILTER" -ForegroundColor Gray
+  $STATUSPCF = Get-NetOffloadGlobalSetting | Select-Object PacketCoalescingFilter | Select PacketCoalescingFilter -ExpandProperty PacketCoalescingFilter | Out-String -Stream
+  if ($STATUSPCF -eq "Disabled")
     {
-    Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled -ErrorAction Stop
-    Write-Host "    The PACKET COALESCING FILTER is successfully set to disabled. :-)" -ForegroundColor Green
-    }
-  catch
-    {
-    $DISABLEPCFOK = $false
-    Write-Host ("  The PACKET COALESCING FILTER could not set to disabled. :-(") -ForegroundColor Red
-    if ($DEDAILEDDEBUG -eq "ON")
-      {Write-Host $_ -ForegroundColor Red}
-    }
-  }
-if ($DISABLEPCFOK -eq $true)
-    {
-    Write-Host "Disabling PACKET COALESCING FILTER has been finished successfully. :-)" -ForegroundColor Cyan
+    Write-Host "  The PACKET COALESCING FILTER is already disabled, so nothing to do. :-)" -ForegroundColor Green
     }
   else
     {
-    $FULLYCOMPLETED = $false
-    Write-Host "Disabling PACKET COALESCING FILTER can't finished successfully. :-(" -ForegroundColor Red
+    Write-Host "  The PACKET COALESCING FILTER is enabled, try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetOffloadGlobalSetting -PacketCoalescingFilter Disabled -ErrorAction Stop
+      Write-Host "    The PACKET COALESCING FILTER is successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLEPCFOK = $false
+      Write-Host ("  The PACKET COALESCING FILTER could not set to disabled. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON")
+        {Write-Host $_ -ForegroundColor Red}
+      }
     }
-
-# DISABLE RECEIVE SIDE SCALING ON WINDOWS TCP-STACK
-$DISABLERSSOK = $true
-Write-Host "Start disabling RECEIVE SIDE SCALING on Windows TCP-Stack" -ForegroundColor Cyan
-Write-Host "  Check current state of RECEIVE SIDE SCALING" -ForegroundColor Gray
-$STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSideScaling | Select ReceiveSideScaling -ExpandProperty ReceiveSideScaling | Out-String -Stream
-if ($STATUSRSS -eq "Disabled")
-  {
-  Write-Host "  The RECEIVE SIDE SCALING is already disabled, so nothing to do. :-)" -ForegroundColor Green
-  }
+  if ($DISABLEPCFOK -eq $true)
+      {
+      Write-Host "Disabling PACKET COALESCING FILTER has been finished successfully. :-)" -ForegroundColor Cyan
+      }
+    else
+      {
+      $FULLYCOMPLETED = $false
+      Write-Host "Disabling PACKET COALESCING FILTER can't finished successfully. :-(" -ForegroundColor Red
+      }
+    }
 else
   {
-  Write-Host "  The RECEIVE SIDE SCALING is enabled, try next to disable it." -ForegroundColor Yellow
-  try
-    {
-    Set-NetOffloadGlobalSetting -ReceiveSideScaling Disabled -ErrorAction Stop
-    Write-Host "    The RECEIVE SIDE SCALING is successfully set to disabled. :-)" -ForegroundColor Green
-    }
-  catch
-    {
-    $DISABLERSSOK = $false
-    Write-Host ("  The RECEIVE SIDE SCALING could not set to disabled. :-(") -ForegroundColor Red
-    if ($DEDAILEDDEBUG -eq "ON")
-      {Write-Host $_ -ForegroundColor Red}
-    }
+  Write-Host "Due to the installed Hyper-V role, the optimization of the PACKET COALESCING FILTER ON WINDOWS TCP-STACK is skipped." -ForegroundColor Yellow
   }
-if ($DISABLERSSOK -eq $true)
+
+# DISABLE RECEIVE SIDE SCALING ON WINDOWS TCP-STACK
+if ($HYPERVSTATE -eq "Disabled")
+  {
+  $DISABLERSSOK = $true
+  Write-Host "Start disabling RECEIVE SIDE SCALING on Windows TCP-Stack" -ForegroundColor Cyan
+  Write-Host "  Check current state of RECEIVE SIDE SCALING" -ForegroundColor Gray
+  $STATUSRSS = Get-NetOffloadGlobalSetting | Select-Object ReceiveSideScaling | Select ReceiveSideScaling -ExpandProperty ReceiveSideScaling | Out-String -Stream
+  if ($STATUSRSS -eq "Disabled")
+    {
+    Write-Host "  The RECEIVE SIDE SCALING is already disabled, so nothing to do. :-)" -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "  The RECEIVE SIDE SCALING is enabled, try next to disable it." -ForegroundColor Yellow
+    try
+      {
+      Set-NetOffloadGlobalSetting -ReceiveSideScaling Disabled -ErrorAction Stop
+      Write-Host "    The RECEIVE SIDE SCALING is successfully set to disabled. :-)" -ForegroundColor Green
+      }
+    catch
+      {
+      $DISABLERSSOK = $false
+      Write-Host ("  The RECEIVE SIDE SCALING could not set to disabled. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON")
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  if ($DISABLERSSOK -eq $true)
     {
     Write-Host "Disabling RECEIVE SIDE SCALING has been finished successfully. :-)" -ForegroundColor Cyan
     }
@@ -214,6 +238,11 @@ if ($DISABLERSSOK -eq $true)
     $FULLYCOMPLETED = $false
     Write-Host "Disabling RECEIVE SIDE SCALING can't finished successfully. :-(" -ForegroundColor Red
     }
+  }
+else
+  {
+  Write-Host "Due to the installed Hyper-V role, the optimization of the RECEIVE SIDE SCALING on Windows TCP-Stack is skipped." -ForegroundColor Yellow
+  }
 
 # DISABLE RECEIVE SEGMENT COALESCING ON WINDOWS TCP-STACK
 $DISABLERSCOK = $true
@@ -378,49 +407,49 @@ else
   }
 
 # DISABLE RSS ON ALL NIC's
-$DISABLERSSOK = $true
-Write-Host "Start disabling RSS on all NIC's" -ForegroundColor Cyan
-Write-Host "  Check if NIC's with RSS support are available on this System." -ForegroundColor Gray
-$NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RSS"}
-$NICsWITHRSS = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
+if ($HYPERVSTATE -eq "Disabled")
+  {
+  $DISABLERSSOK = $true
+  Write-Host "Start disabling RSS on all NIC's" -ForegroundColor Cyan
+  Write-Host "  Check if NIC's with RSS support are available on this System." -ForegroundColor Gray
+  $NICs = Get-NetAdapter -Physical | Get-NetAdapterAdvancedProperty | Where-Object -FilterScript {$_.RegistryKeyword -Like "*RSS"}
+  $NICsWITHRSS = $NICs | Measure-Object -Line | Select-Object Lines | Select Lines -ExpandProperty Lines
 
-if ($NICsWITHRSS -eq 0)
-  {
-      Write-Host ("  No NIC's installed in this system which support RSS, so, nothing to do. :-)") -ForegroundColor Green
-  }
-else
-  {
-  Write-Host ("  " + $NICsWITHRSS + " NIC's found on this System that support RSS") -ForegroundColor Yellow
-  foreach ($adapter in $NICs)
+  if ($NICsWITHRSS -eq 0)
     {
-    $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
-    $RSSVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream
-
-    Write-Host ("    Check RSS Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
-
-    if ($RSSVALUE -eq "0")
+    Write-Host ("  No NIC's installed in this system which support RSS, so, nothing to do. :-)") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host ("  " + $NICsWITHRSS + " NIC's found on this System that support RSS") -ForegroundColor Yellow
+    foreach ($adapter in $NICs)
       {
-      Write-Host ("    RSS on NIC " + $NICNAME + " is already disabled, so, nothing to do. :-)") -ForegroundColor Green
-      }
-    else
-      {
-      Write-Host ("    RSS on NIC " + $NICNAME + " is enabled, try next to disable it.") -ForegroundColor Yellow
-      try
+      $NICNAME = $adapter | Select-Object Name | Select Name -ExpandProperty Name | Out-String -Stream
+      $RSSVALUE = $adapter | Select-Object RegistryValue | Select RegistryValue -ExpandProperty RegistryValue | Out-String -Stream
+      Write-Host ("    Check RSS Status of NIC " + $NICNAME + " .") -ForegroundColor Gray
+      if ($RSSVALUE -eq "0")
         {
-        Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*RSS" -RegistryValue 0 -ErrorAction Stop
-        Write-Host "    RSS on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+        Write-Host ("    RSS on NIC " + $NICNAME + " is already disabled, so, nothing to do. :-)") -ForegroundColor Green
         }
-      catch
+      else
         {
-        $DISABLERSSOK = $false
-        Write-Host ("  The RSS on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
-        if ($DEDAILEDDEBUG -eq "ON")
-          {Write-Host $_ -ForegroundColor Red}
+        Write-Host ("    RSS on NIC " + $NICNAME + " is enabled, try next to disable it.") -ForegroundColor Yellow
+        try
+          {
+          Set-NetAdapterAdvancedProperty -Name "$NICNAME" -RegistryKeyword "*RSS" -RegistryValue 0 -ErrorAction Stop
+          Write-Host "    RSS on NIC " + $NICNAME + ", has been successfully set to disabled. :-)" -ForegroundColor Green
+          }
+        catch
+          {
+          $DISABLERSSOK = $false
+          Write-Host ("  The RSS on NIC " + $NICNAME + ", could not set to disabled. :-(") -ForegroundColor Red
+          if ($DEDAILEDDEBUG -eq "ON")
+            {Write-Host $_ -ForegroundColor Red}
+          }
         }
       }
     }
-  }
-if ($DISABLERSSOK -eq $true)
+  if ($DISABLERSSOK -eq $true)
     {
     Write-Host "RSS has been successfully disabled on all corresponding NIC's or there is nothing to do. :-)" -ForegroundColor Cyan
     }
@@ -429,6 +458,11 @@ if ($DISABLERSSOK -eq $true)
     $FULLYCOMPLETED = $false
     Write-Host "Disabling RSS can't finished successfully. :-(" -ForegroundColor Red
     }
+  }
+else
+  {
+  Write-Host "Due to the installed Hyper-V role, DISABLE RSS ON ALL NIC's is skipped." -ForegroundColor Yellow
+  }
 
 # DISABLE RSC-IPv4 FOR ALL NIC's
 $DISABLERSCIPV4OK = $true
@@ -851,6 +885,7 @@ foreach ($adapter in $NICs)
       }
     }
   }
+
 if ($CHANGETCPDELAYOK -eq $true)
     {
     Write-Host "TCP-Delay optimization is finished successfully. :-)" -ForegroundColor Cyan
