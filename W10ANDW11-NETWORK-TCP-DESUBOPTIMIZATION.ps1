@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.
 
  .NOTES
-    Version:        1.14
+    Version:        1.15
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  18.03.2023
+    Creation Date:  19.03.2023
 
 .LINK
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
@@ -35,10 +35,13 @@ $FULLYCOMPLETED = $true
 $BAKLOGPATH = "C:\BACKUP"
 $BAKLOGFILENAME = "WINDOWS10AND11-NETWORK-DESUBOPTIMIZATION.log"
 $BAKLOGDATE = Get-Date
+$TIMESTAMP = Get-Date -Format o | ForEach-Object { $_ -replace ":", "." }
+
 if (!(Test-Path $BAKLOGPATH))
   {New-Item -Path $BAKLOGPATH -ItemType Directory}
 
 Start-Transcript -Path "$BAKLOGPATH\$BAKLOGFILENAME" -Append
+
 Write-Host (" ") -ForegroundColor White
 Write-Host ("************************************************************************************************************") -ForegroundColor White
 Write-Host ("*** Beginning of the configuration-backup from " + $BAKLOGDATE) -ForegroundColor White
@@ -111,6 +114,21 @@ foreach ($adapter in $NICs)
     Write-Host ("The TcpNoDelay Key for NIC " + $NICNAME + " is NOT present in the registry.") -ForegroundColor White
     }
   }
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Create Backup from HKLM\SYSTEM\CurrentControlSet\Services\Winsock to " + $BAKLOGPATH + "\WinSock-RegBackup-" + $TIMESTAMP + ".reg") -ForegroundColor White
+reg export HKLM\SYSTEM\CurrentControlSet\Services\Winsock $BAKLOGPATH\WinSock-RegBackup-$TIMESTAMP.reg
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Create Backup from HKLM\SYSTEM\CurrentControlSet\Services\WinSock2 to " + $BAKLOGPATH + "\Winsock2-RegBackup-" + $TIMESTAMP + ".reg") -ForegroundColor White
+reg export HKLM\SYSTEM\CurrentControlSet\Services\WinSock2 $BAKLOGPATH\WinSock2-RegBackup-$TIMESTAMP.reg
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Create Backup from HKLM\SYSTEM\CurrentControlSet\Control\Nsi to " + $BAKLOGPATH + "\NSI-RegBackup-" + $TIMESTAMP + ".reg") -ForegroundColor White
+reg export HKLM\SYSTEM\CurrentControlSet\Control\Nsi $BAKLOGPATH\NSI-RegBackup-$TIMESTAMP.reg
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Create Backup from HKLM\SYSTEM\CurrentControlSet\Services\Tcpip to " + $BAKLOGPATH + "\TCPIP-RegBackup-" + $TIMESTAMP + ".reg") -ForegroundColor White
+reg export HKLM\SYSTEM\CurrentControlSet\Services\Tcpip $BAKLOGPATH\TCPIP-RegBackup-$TIMESTAMP.reg
+Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
+Write-Host ("Create Backup from HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318} to " + $BAKLOGPATH + "\NICSETTINGS-RegBackup-" + $TIMESTAMP + ".reg") -ForegroundColor White
+reg export "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e972-e325-11ce-bfc1-08002be10318}" $BAKLOGPATH\NICSETTINGS-RegBackup-$TIMESTAMP.reg
 Write-Host (" ") -ForegroundColor White
 Write-Host ("************************************************************************************************************") -ForegroundColor White
 Write-Host ("*** End of the configuration-backup from " + $BAKLOGDATE) -ForegroundColor White
@@ -120,6 +138,12 @@ Write-Host ("*******************************************************************
 Write-Host ("*** Beginning of change logging from " + $BAKLOGDATE) -ForegroundColor White
 Write-Host ("************************************************************************************************************") -ForegroundColor White
 Write-Host (" ") -ForegroundColor White
+
+# RESET TCP STACK
+netsh interface tcp reset
+
+# RESET WINSOCK
+netsh winsock reset
 
 # DISABLE PACKET COALESCING FILTER ON WINDOWS TCP-STACK
 $DISABLEPCFOK = $true
@@ -274,8 +298,6 @@ catch
   if ($DEDAILEDDEBUG -eq "ON")
     {Write-Host $_ -ForegroundColor Red}
   }
-
-
 if ($CHANGETCPCCOK -eq $true)
     {
     Write-Host "TCP congestion control optimization is finished successfully. :-)" -ForegroundColor Cyan
@@ -292,6 +314,8 @@ Write-Host "  Check if the key already exists in the registry." -ForegroundColor
 $CHANGETCPPROFILEOK = $false
 $TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
 $CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
+$REGPATH = "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\"
+
 if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
   {
   Write-Host "  The value is present in the registry." -ForegroundColor Yellow
@@ -307,7 +331,7 @@ if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
     Write-Host "  The current registry entry does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
     try
       {
-      Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
+      Set-ItemProperty -Path $REGPATH -Name "06000000" -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
       Write-Host "  The corresponding registry entry has now been successfully updated." -ForegroundColor Green
       $CHANGETCPPROFILEOK = $true
       }
@@ -324,7 +348,15 @@ else
   Write-Host "  The corresponding registry entry does not exist and is now being created." -ForegroundColor Yellow
   try
     {
-    New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -PropertyType Binary -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
+    Get-Item $REGPATH -ErrorAction Stop
+    }
+  catch
+    {
+    New-Item $REGPATH
+    }
+  try
+    {
+    New-ItemProperty -Path $REGPATH -Name "06000000" -PropertyType Binary -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
     Write-Host "  The corresponding registry entry has been created successfully. :-)" -ForegroundColor Green
     $CHANGETCPPROFILEOK = $true
     }
@@ -819,7 +851,6 @@ foreach ($adapter in $NICs)
       }
     }
   }
-
 if ($CHANGETCPDELAYOK -eq $true)
     {
     Write-Host "TCP-Delay optimization is finished successfully. :-)" -ForegroundColor Cyan
