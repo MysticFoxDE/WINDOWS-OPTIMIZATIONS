@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.
 
  .NOTES
-    Version:        2.00
+    Version:        2.01
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  19.03.2023
+    Creation Date:  13.04.2023
 
 .LINK
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
@@ -64,18 +64,6 @@ Get-NetAdapterRsc | FT -AutoSize
 Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
 Write-Host ("Get-NetAdapterRss:") -ForegroundColor White
 Get-NetAdapterRss | FL
-Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
-Write-Host ("Status TCP-Profile: (Registry)") -ForegroundColor White
-$TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
-$CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
-if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
-  {
-  Write-Host ("The 06000000 Key is present in the registry with value " + $CHECKVALUE + ".") -ForegroundColor White
-  }
-else
-  {
-  Write-Host ("The 06000000 Key is NOT present in the registry.") -ForegroundColor White
-  }
 Write-Host ("------------------------------------------------------------------------------------------------------------") -ForegroundColor White
 Write-Host ("Status ACK-Frequency: (Registry)") -ForegroundColor White
 $NICs = Get-NetAdapter -Physical | Select-Object DeviceID, Name
@@ -282,25 +270,25 @@ if ($DISABLERSCOK -eq $true)
 # OPTIMIZE TCP CONGESTION CONTROL
 $CHANGETCPCCOK = $true
 Write-Host "Start TCP congestion control optimization" -ForegroundColor Cyan
-Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP" -ForegroundColor Gray
+Write-Host "  Try to set the congestionprovider of the Internet TCP profile to DCTCP" -ForegroundColor Gray
 try
   {
-  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set supplemental template=DatacenterCustom congestionprovider=DCTCP" -ErrorAction Stop | Out-String -Stream
+  $COMMANDOUTPUT = Invoke-Expression -Command "netsh int tcp set supplemental template=Internet congestionprovider=DCTCP" -ErrorAction Stop | Out-String -Stream
   if ($COMMANDOUTPUT -eq "OK.")
     {
-    Write-Host "  Try to set the congestionprovider of the Datacenter TCP profile to DCTCP was successfully. :-)" -ForegroundColor Green
+    Write-Host "  Try to set the congestionprovider of the Internet TCP profile to DCTCP was successfully. :-)" -ForegroundColor Green
     }
   else
     {
     $CHANGETCPCCOK = $false
-    Write-Host "  The Update of the congestionprovider of the Datacenter TCP profile to DCTCP was NOT successfully. :-(" -ForegroundColor Red
+    Write-Host "  The Update of the congestionprovider of the Internet TCP profile to DCTCP was NOT successfully. :-(" -ForegroundColor Red
     Write-Host ("  " + $COMMANDOUTPUT) -ForegroundColor Red
     }
   }
 catch
   {
   $CHANGETCPCCOK = $false
-  Write-Host ("  The Update of the congestionprovider of the Datacenter TCP profile to DCTCP was NOT successfully. :-(") -ForegroundColor Red
+  Write-Host ("  The Update of the congestionprovider of the Internet TCP profile to DCTCP was NOT successfully. :-(") -ForegroundColor Red
   if ($DEDAILEDDEBUG -eq "ON")
     {Write-Host $_ -ForegroundColor Red}
   }
@@ -336,75 +324,6 @@ if ($CHANGETCPCCOK -eq $true)
     $FULLYCOMPLETED = $false
     Write-Host "TCP congestion control can't finished successfully. :-(" -ForegroundColor Red
     }
-
-# CHANGE TCP PROFILE TO DATACENTERCUSTOM
-Write-Host "Start TCP profile optimization" -ForegroundColor Cyan
-Write-Host "  Check if the key already exists in the registry." -ForegroundColor Gray
-$CHANGETCPPROFILEOK = $false
-$TARGETVALUE = @([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))
-$CHECKVALUE =  @([byte[]](Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\" -Name "06000000" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "06000000"))
-$REGPATH = "HKLM:\SYSTEM\CurrentControlSet\Control\Nsi\{eb004a03-9b1a-11d4-9123-0050047759bc}\27\"
-
-if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
-  {
-  Write-Host "  The value is present in the registry." -ForegroundColor Yellow
-  Write-Host "  Checking the already existing parameter." -ForegroundColor Gray
-  $AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0
-  if ($AREEQUAL -eq $true)
-    {
-    Write-Host "  The settings are already set correctly, no further measures are required." -ForegroundColor Green
-    $CHANGETCPPROFILEOK = $true
-    }
-  else
-    {
-    Write-Host "  The current registry entry does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
-    try
-      {
-      Set-ItemProperty -Path $REGPATH -Name "06000000" -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
-      Write-Host "  The corresponding registry entry has now been successfully updated." -ForegroundColor Green
-      $CHANGETCPPROFILEOK = $true
-      }
-    catch
-      {
-      Write-Host ("  The registry key could not be updated due to an error. :-(") -ForegroundColor Red
-      if ($DEDAILEDDEBUG -eq "ON")
-          {Write-Host $_ -ForegroundColor Red}
-      }
-    }
-  }
-else
-  {
-  Write-Host "  The corresponding registry entry does not exist and is now being created." -ForegroundColor Yellow
-  try
-    {
-    Get-Item $REGPATH -ErrorAction Stop
-    }
-  catch
-    {
-    New-Item $REGPATH
-    }
-  try
-    {
-    New-ItemProperty -Path $REGPATH -Name "06000000" -PropertyType Binary -Value (([byte[]](0x03,0x00,0x00,0x00,0xff,0xff,0xff,0xff))) -ErrorAction Stop
-    Write-Host "  The corresponding registry entry has been created successfully. :-)" -ForegroundColor Green
-    $CHANGETCPPROFILEOK = $true
-    }
-  catch
-    {
-    Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
-    if ($DEDAILEDDEBUG -eq "ON")
-      {Write-Host $_ -ForegroundColor Red}
-    }
-  }
-if ($CHANGETCPPROFILEOK -eq $true)
-  {
-  Write-Host "TCP profile optimization is finished successfully. :-)" -ForegroundColor Cyan
-  }
-else
-  {
-  $FULLYCOMPLETED = $false
-  Write-Host "TCP profile optimization can't finished successfully. :-(" -ForegroundColor Red
-  }
 
 # DISABLE RSS ON ALL NIC's
 if ($HYPERVSTATE -eq "Disabled")
