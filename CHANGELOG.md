@@ -8,3 +8,18 @@
 - Instead, however, I simply applied the optimizations (switch from CUBIC to DCTCP & enable ECN) I previously made to the DatacenterCustom profile to the Internet TCP profile. :-)
 
 In other words, the optimization effect remains the same on W11 and the script should no longer cause any problems on W10. ;-)
+
+### v2.02
+
+Extension of the script to remove the "TCP Connection Limit".
+I actually thought that this limiter would be disabled since Windows Vista SP2.
+However, various articles on the Internet, such as the following one ... 
+
+https://zditect.com/blog/413110.html
+
+prove exactly the opposite. :-(
+
+I find it a sham that Microsoft restricts the number of simultaneous connections, depending on the license, without even mentioning it with a word anywhere.
+
+Many thanks at this point to @rugabunda, who drew my attention to this topic again in the following discussion.
+https://github.com/MysticFoxDE/WINDOWS-OPTIMIZATIONS/issues/17
