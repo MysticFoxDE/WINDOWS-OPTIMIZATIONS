@@ -3,9 +3,9 @@
     This Script desuboptimize a lot W10 & W11 TCP Settings.
 
  .NOTES
-    Version:        2.01
+    Version:        2.02
     Author:         MysticFoxDE (Alexander Fuchs)
-    Creation Date:  13.04.2023
+    Creation Date:  23.04.2023
 
 .LINK
     https://www.golem.de/news/tcp-die-versteckte-netzwerkbremse-in-windows-10-und-11-2302-172043.html
@@ -323,6 +323,67 @@ if ($CHANGETCPCCOK -eq $true)
     {
     $FULLYCOMPLETED = $false
     Write-Host "TCP congestion control can't finished successfully. :-(" -ForegroundColor Red
+    }
+
+# REMOVE TCP CONNECTION LIMIT
+Write-Host "Start to remove the TCP connection limit." -ForegroundColor Cyan
+$REMOVETCPCONNECTIONLIMITOK = $true
+$REGKEYPATH = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" | Out-String -Stream
+
+Write-Host ("  Check if the key already exists in the registry.") -ForegroundColor Gray
+$TARGETVALUE = 0
+$CHECKVALUE = Get-ItemProperty -Path "$REGKEYPATH" -Name "EnableConnectionRateLimiting" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "EnableConnectionRateLimiting"
+if (($CHECKVALUE -ne $null) -and ($CHECKVALUE.Length -gt 0))
+  {
+  Write-Host ("    The key is present in the registry.") -ForegroundColor Yellow
+  Write-Host ("    Checking the already existing key.") -ForegroundColor Gray
+  $AREEQUAL = @(Compare-Object $TARGETVALUE $CHECKVALUE -SyncWindow 0).Length -eq 0
+  if ($AREEQUAL -eq $true)
+    {
+    Write-Host ("  The setting is already set correctly, no further measures are required.") -ForegroundColor Green
+    }
+  else
+    {
+    Write-Host "    The current registry key does not match the desired value and therefore needs to be updated." -ForegroundColor Yellow
+    try
+      {
+      Set-ItemProperty -Path "$REGKEYPATH" -Name "EnableConnectionRateLimiting" -Value 0 -ErrorAction Stop
+      Write-Host "  The corresponding registry entry has now been successfully updated." -ForegroundColor Green
+      }
+    catch
+      {
+      $REMOVETCPCONNECTIONLIMITOK = $false
+      Write-Host ("  The registry key could not be updated due to an error. :-(") -ForegroundColor Red
+      if ($DEDAILEDDEBUG -eq "ON")
+        {Write-Host $_ -ForegroundColor Red}
+      }
+    }
+  }
+else
+  {
+  Write-Host ("    The corresponding registry key does not exist and is now being created.") -ForegroundColor Yellow
+  try
+    {
+    New-ItemProperty -Path "$REGKEYPATH" -Name "EnableConnectionRateLimiting" -PropertyType DWord  -Value "0" -ErrorAction Stop
+    Write-Host ("  The corresponding registry key for NIC " + $NICNAME + " has been created successfully. :-)") -ForegroundColor Green
+    }
+  catch
+    {
+    $CHANGETCPACKFREQUENCYOK = $false
+    Write-Host ("  The registry key could not be created due to an error. :-(") -ForegroundColor Red
+    if ($DEDAILEDDEBUG -eq "ON")
+      {Write-Host $_ -ForegroundColor Red}
+    }
+  }
+
+if ($REMOVETCPCONNECTIONLIMITOK -eq $true)
+    {
+    Write-Host "Removing the TCP connection limit is finished successfully. :-)" -ForegroundColor Cyan
+    }
+  else
+    {
+    $FULLYCOMPLETED = $false
+    Write-Host "Removing the TCP connection limit can't finished successfully. :-(" -ForegroundColor Red
     }
 
 # DISABLE RSS ON ALL NIC's
